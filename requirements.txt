@@ -1,0 +1,20 @@
+# Production dependencies (CPU inference). Install with:
+#   pip install -r requirements.txt
+#
+# PyTorch CPU wheels (Linux/Docker/Railway). For CUDA locally, install torch separately.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+fastapi>=0.110,<0.116
+uvicorn[standard]>=0.27,<0.35
+python-multipart>=0.0.9
+
+torch==2.2.2
+torchvision==0.17.2
+
+numpy>=1.24,<2.1
+opencv-python-headless>=4.8,<5
+Pillow>=10.0
+mediapipe>=0.10.9,<0.11
+
+arabic-reshaper>=3.0.0
+python-bidi>=0.4.2

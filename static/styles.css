@@ -1,0 +1,318 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #0a0f16;
+  color: #f7f7f7;
+}
+
+.page-home .header,
+.page-fatiha .header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: radial-gradient(circle at top, #182438, #05070b);
+}
+
+.header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.header-center {
+  text-align: center;
+  flex: 1;
+}
+
+.logo {
+  margin: 0;
+  font-size: 1.6rem;
+  letter-spacing: 0.1em;
+}
+
+.subtitle {
+  margin-top: 0.25rem;
+  font-size: 0.9rem;
+  color: #c3cad5;
+}
+
+.content {
+  max-width: 1100px;
+  margin: 1.5rem auto 2rem;
+  padding: 0 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.content--split {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr);
+  gap: 1.5rem;
+}
+
+@media (max-width: 860px) {
+  .content--split {
+    grid-template-columns: 1fr;
+  }
+
+  .header-inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.panel {
+  background: linear-gradient(135deg, rgba(15, 25, 40, 0.96), rgba(8, 12, 20, 0.98));
+  border-radius: 14px;
+  padding: 1.25rem 1.25rem 1.5rem;
+  box-shadow:
+    0 18px 30px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.panel-title {
+  margin: 0 0 0.85rem;
+  font-size: 1.1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 0.5rem;
+}
+
+.surah-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.surah-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  margin-bottom: 0.35rem;
+  font-size: 0.98rem;
+}
+
+.surah-item--enabled {
+  background: rgba(45, 150, 110, 0.1);
+  color: #e9fff5;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.surah-item--enabled:hover {
+  background: rgba(45, 150, 110, 0.18);
+  transform: translateY(-1px);
+}
+
+.surah-item--disabled {
+  background: rgba(255, 255, 255, 0.03);
+  color: #9ca3af;
+}
+
+.surah-status {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.surah-status--active {
+  color: #4ade80;
+}
+
+.hint {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: #a5b4c4;
+}
+
+.quran-text {
+  direction: rtl;
+  text-align: center;
+  font-family: "Amiri Quran", "Scheherazade New", "Amiri", "Traditional Arabic", serif;
+  line-height: 2.5;
+  font-size: 1.6rem;
+  background: radial-gradient(circle at top, #111827, #020617);
+  border-radius: 12px;
+  padding: 1.4rem 1.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  min-height: 150px;
+}
+
+.quran-ayah {
+  display: block;
+  margin-bottom: 0.7rem;
+}
+
+.quran-ayah-text {
+  white-space: pre-wrap;
+}
+
+.quran-ayah-dim {
+  color: rgba(226, 232, 240, 0.55);
+}
+
+.quran-ayah-correct {
+  color: #4ade80;
+}
+
+.quran-ayah-wrong {
+  color: #f87171;
+}
+
+.quran-ayah-number {
+  display: inline-block;
+  margin-inline-start: 0.35em;
+  margin-inline-end: 0.1em;
+  font-size: 0.8em;
+  color: #e5e7eb;
+  vertical-align: middle;
+}
+
+.controls {
+  margin-top: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.btn {
+  border: none;
+  border-radius: 999px;
+  padding: 0.4rem 0.95rem;
+  background: rgba(148, 163, 184, 0.2);
+  color: #e5e7eb;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.08s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #041007;
+  font-weight: 600;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  background: rgba(148, 163, 184, 0.3);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #4ade80, #22c55e);
+}
+
+.status-label {
+  font-size: 0.85rem;
+  color: #e5e7eb;
+  opacity: 0.9;
+}
+
+.camera-container {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #020617;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+}
+
+video {
+  width: 100%;
+  display: block;
+  background: #000;
+}
+
+.overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 0.4rem 0.7rem;
+  background: linear-gradient(to top, rgba(15, 23, 42, 0.96), transparent);
+  font-size: 0.82rem;
+}
+
+.overlay-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.2rem;
+}
+
+.overlay-row.small {
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.letter-display {
+  font-size: 1.5rem;
+  font-family: "Amiri Quran", "Scheherazade New", "Amiri", "Traditional Arabic", serif;
+  color: #facc15;
+}
+
+.word-display {
+  font-family: "Amiri Quran", "Scheherazade New", "Amiri", "Traditional Arabic", serif;
+  color: #e5e7eb;
+}
+
+.leaderboard {
+  font-size: 0.9rem;
+}
+
+.leaderboard ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.leaderboard li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.3rem 0.4rem;
+  border-bottom: 1px dashed rgba(148, 163, 184, 0.2);
+}
+
+.leaderboard-name {
+  font-weight: 500;
+}
+
+.leaderboard-score {
+  color: #a5b4fc;
+}
+
+.back-link {
+  color: #9ca3af;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.back-link:hover {
+  color: #e5e7eb;
+}
+
+.user-name-label {
+  font-size: 0.85rem;
+  color: #d1d5db;
+}
+
+.text-input {
+  margin-right: 0.35rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  background: rgba(15, 23, 42, 0.8);
+  color: #f9fafb;
+}
+
+.text-input:focus {
+  outline: none;
+  border-color: #22c55e;
+}
+

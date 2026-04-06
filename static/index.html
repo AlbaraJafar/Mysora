@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Empty = same origin. On Vercel, set to your Railway API URL (https://…railway.app, no trailing slash). -->
+  <meta name="mysora-api-base" content="" />
+  <title>ميسورا - تعلم القرآن بالإشارة</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&display=swap" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="page page-home">
+  <header class="header">
+    <div class="header-inner">
+      <h1 class="logo">ميسورا</h1>
+      <div class="subtitle">تعلم القرآن الكريم بلغة الإشارة</div>
+    </div>
+  </header>
+
+  <main class="content">
+    <section class="panel">
+      <h2 class="panel-title">السور</h2>
+      <ul class="surah-list">
+        <li>
+          <a href="fatiha.html" class="surah-item surah-item--enabled">
+            <span class="surah-name">الفاتحة</span>
+            <span class="surah-status surah-status--active">متاح الآن</span>
+          </a>
+        </li>
+        <!-- Placeholder items for other surahs -->
+        <li class="surah-item surah-item--disabled">
+          <span class="surah-name">البقرة</span>
+          <span class="surah-status">قريباً</span>
+        </li>
+        <li class="surah-item surah-item--disabled">
+          <span class="surah-name">آل عمران</span>
+          <span class="surah-status">قريباً</span>
+        </li>
+        <li class="surah-item surah-item--disabled">
+          <span class="surah-name">النساء</span>
+          <span class="surah-status">قريباً</span>
+        </li>
+        <li class="surah-item surah-item--disabled">
+          <span class="surah-name">المائدة</span>
+          <span class="surah-status">قريباً</span>
+        </li>
+      </ul>
+      <p class="hint">سيتم إضافة باقي السور تدريجياً بإذن الله.</p>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">ترتيب الطلاب</h2>
+      <div id="leaderboard-home" class="leaderboard"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
+

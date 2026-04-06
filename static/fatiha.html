@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="mysora-api-base" content="" />
+  <title>الفاتحة - ميسورا</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&display=swap" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="page page-fatiha">
+  <header class="header">
+    <div class="header-inner">
+      <div class="header-left">
+        <a href="/" class="back-link">↩ الرجوع إلى السور</a>
+      </div>
+      <div class="header-center">
+        <h1 class="logo">ميسورا - الفاتحة</h1>
+        <div class="subtitle">تعلّم قراءة الفاتحة بلغة الإشارة</div>
+      </div>
+      <div class="header-right">
+        <label class="user-name-label">
+          اسم المستخدم:
+          <input id="user-name" class="text-input" type="text" placeholder="مثال: أحمد" />
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <main class="content content--split">
+    <section class="panel panel--wide">
+      <h2 class="panel-title">نص السورة</h2>
+      <div id="fatiha-text" class="quran-text"></div>
+      <div class="controls">
+        <button id="btn-start" class="btn btn-primary">بدء التعلم</button>
+        <button id="btn-reset" class="btn">إعادة المحاولة</button>
+        <span id="session-status" class="status-label">في انتظار البدء…</span>
+      </div>
+    </section>
+
+    <section class="panel panel--side">
+      <h2 class="panel-title">الكاميرا</h2>
+      <div class="camera-container">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="capture-canvas" width="320" height="240" hidden></canvas>
+        <div class="overlay">
+          <div class="overlay-row">
+            <span>الحرف المكتشف:</span>
+            <span id="detected-letter" class="letter-display">ـ</span>
+          </div>
+          <div class="overlay-row">
+            <span>الكلمة الحالية:</span>
+            <span id="server-word" class="word-display">ـ</span>
+          </div>
+          <div class="overlay-row small">
+            <span>الدقة التقريبية:</span>
+            <span id="accuracy-display">0%</span>
+          </div>
+        </div>
+      </div>
+      <p class="hint">
+        ضع يدك في إطار الكاميرا، وابدأ بتشكيل الحروف واحدة تلو الأخرى حسب ترتيب السورة.
+      </p>
+    </section>
+
+    <section class="panel panel--side">
+      <h2 class="panel-title">ترتيب الطلاب</h2>
+      <div id="leaderboard-fatiha" class="leaderboard"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
