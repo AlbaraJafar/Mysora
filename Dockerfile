@@ -23,4 +23,4 @@ COPY . .
 EXPOSE 8000
 
 # Railway provides PORT; default 8000 for local Docker
-CMD ["sh", "-c", "uvicorn api_main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "uvicorn api_main:app --host 0.0.0.0 --port $PORT
