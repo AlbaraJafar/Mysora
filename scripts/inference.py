@@ -2,6 +2,7 @@ import os
 
 import cv2
 import numpy as np
+import requests
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -20,6 +21,10 @@ except Exception:
 
 num_classes = 31
 
+MODEL_DOWNLOAD_URL = (
+    "https://huggingface.co/Albaraajaafar/mysora-model/resolve/main/MysoraBestModel.pth"
+)
+
 # build the same architecture used during training
 model = models.resnet50(weights=None)
 num_ftrs = model.fc.in_features
@@ -29,18 +34,74 @@ model.fc = nn.Linear(num_ftrs, num_classes)
 _HERE = Path(__file__).resolve()
 _PROJECT_ROOT = _HERE.parents[1]
 
+
+def _canonical_default_model_path() -> Path:
+    return (_PROJECT_ROOT / "model" / "MysoraBestModel.pth").resolve()
+
+
 def _resolve_checkpoint_path() -> Path:
     env_path = os.environ.get("MYSORA_MODEL_PATH", "").strip()
     if env_path:
         p = Path(env_path).expanduser()
-        if not p.is_file():
-            raise RuntimeError(f"MYSORA_MODEL_PATH set but file not found: {p}")
+        if not p.is_absolute():
+            p = (_PROJECT_ROOT / p).resolve()
+        else:
+            p = p.resolve()
         return p
-    default = _PROJECT_ROOT / "model" / "MysoraBestModel.pth"
-    return default
+    return _canonical_default_model_path()
 
 
-checkpoint_path = _resolve_checkpoint_path().as_posix()
+def _download_model(dest: Path) -> None:
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    print("Downloading model...", flush=True)
+    tmp = dest.with_name(dest.name + ".part")
+    try:
+        with requests.get(
+            MODEL_DOWNLOAD_URL,
+            stream=True,
+            timeout=(30, 600),
+        ) as resp:
+            try:
+                resp.raise_for_status()
+            except requests.HTTPError as e:
+                raise RuntimeError(
+                    f"Model download failed (HTTP {resp.status_code}): {MODEL_DOWNLOAD_URL}"
+                ) from e
+            with open(tmp, "wb") as f:
+                for chunk in resp.iter_content(chunk_size=1024 * 1024):
+                    if chunk:
+                        f.write(chunk)
+        tmp.replace(dest)
+    except requests.RequestException as e:
+        if tmp.exists():
+            tmp.unlink(missing_ok=True)
+        raise RuntimeError(
+            f"Failed to download model from {MODEL_DOWNLOAD_URL}: {e}"
+        ) from e
+    except OSError as e:
+        if tmp.exists():
+            tmp.unlink(missing_ok=True)
+        raise RuntimeError(
+            f"Failed to save model to '{dest}': {e}"
+        ) from e
+    if not dest.is_file() or dest.stat().st_size == 0:
+        dest.unlink(missing_ok=True)
+        raise RuntimeError(
+            f"Model download completed but file is missing or empty: {dest}"
+        )
+    print("Model downloaded", flush=True)
+
+
+checkpoint_path_obj = _resolve_checkpoint_path()
+if not checkpoint_path_obj.is_file():
+    if checkpoint_path_obj.resolve() == _canonical_default_model_path():
+        _download_model(checkpoint_path_obj)
+    else:
+        raise RuntimeError(
+            f"MYSORA_MODEL_PATH points to a missing file: {checkpoint_path_obj}"
+        )
+
+checkpoint_path = checkpoint_path_obj.as_posix()
 
 try:
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
