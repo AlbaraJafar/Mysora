@@ -22,5 +22,5 @@ COPY . .
 # Model: bind mount or bake in image; or set MYSORA_MODEL_PATH to a persistent path
 EXPOSE 8000
 
-# Railway provides PORT; default 8000 for local Docker
-CMD ["sh", "-c", "uvicorn api_main:app --host 0.0.0.0 --port $PORT
+# Railway provides PORT; default 8000 for local Docker (shell expands ${PORT:-8000})
+CMD ["sh", "-c", "exec uvicorn api_main:app --host 0.0.0.0 --port ${PORT:-8000}"]
