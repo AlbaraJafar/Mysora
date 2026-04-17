@@ -1,0 +1,13 @@
+#!/bin/sh
+# Reject commits that stage PyTorch checkpoint files (.pth). Models live on Hugging Face only.
+set -e
+
+STAGED_PTH=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null | grep -E '\.pth$' || true)
+if [ -n "$STAGED_PTH" ]; then
+	printf '%s\n' "" "ERROR: Blocked commit — .pth model files must not be committed." \
+		"Store weights on Hugging Face only. Staged .pth file(s):" "" "$STAGED_PTH" "" \
+		"To unstage: git reset HEAD -- <file>" "" >&2
+	exit 1
+fi
+
+exit 0
