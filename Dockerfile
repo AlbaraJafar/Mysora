@@ -8,11 +8,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Runtime libraries for opencv-python-headless (wheels link libxcb, libX11, etc.; not GUI toolkits)
-# and Mediapipe. No GTK/Qt; keep --no-install-recommends and drop apt lists for smaller image.
+# Runtime libraries for opencv-python-headless (wheels link libGL, libxcb, libX11; no GTK/Qt)
+# and Mediapipe. libgl1 supplies libGL.so.1 for import cv2 on slim images.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libgomp1 \
+    libgl1 \
     libxcb1 \
     libxcb-shm0 \
     libx11-6 \
