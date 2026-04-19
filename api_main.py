@@ -361,3 +361,9 @@ def _fatiha_html():
         raise HTTPException(status_code=404)
     return FileResponse(str(p), media_type="text/html; charset=utf-8")
 
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    import uvicorn
+
+    uvicorn.run("api_main:app", host="0.0.0.0", port=port)
