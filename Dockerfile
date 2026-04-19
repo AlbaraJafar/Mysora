@@ -8,10 +8,22 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Minimal deps for OpenCV headless + Mediapipe wheels on Debian slim
+# Runtime libraries for opencv-python-headless (wheels link libxcb, libX11, etc.; not GUI toolkits)
+# and Mediapipe. No GTK/Qt; keep --no-install-recommends and drop apt lists for smaller image.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libgomp1 \
+    libxcb1 \
+    libxcb-shm0 \
+    libx11-6 \
+    libx11-xcb1 \
+    libxau6 \
+    libxdmcp6 \
+    libxext6 \
+    libxrender1 \
+    libsm6 \
+    libice6 \
+    libbsd0 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
