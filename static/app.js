@@ -183,9 +183,9 @@ async function initFatihaPage() {
       sending = true;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
-      // Reduce resolution before sending to backend
-      const targetW = 320;
-      const targetH = 240;
+      // Enough resolution for MediaPipe hands + model (was 320×240; too small for reliable detection)
+      const targetW = 640;
+      const targetH = 480;
       canvas.width = targetW;
       canvas.height = targetH;
       ctx.drawImage(video, 0, 0, targetW, targetH);
@@ -212,15 +212,27 @@ async function initFatihaPage() {
       }
       const data = await res.json();
 
+      const raw = data?.raw || {};
       const emitted = data?.stable?.emitted_arabic || "";
+      const preview = (raw.arabic_preview || "").trim();
       const word = data?.word || "";
       const progressIndex = Number.isFinite(data?.progress_index) ? data.progress_index : word.length;
       const attempt = data?.attempt || null;
       const complete = !!data?.complete;
 
-      // Update displays from backend
+      // Show accepted Arabic first; else live preview from top-1 class (so user always sees feedback)
       if (emitted) {
         detectedLetterEl.textContent = emitted;
+        detectedLetterEl.removeAttribute("title");
+      } else if (preview) {
+        detectedLetterEl.textContent = preview;
+        const pct =
+          raw.confidence != null ? (Number(raw.confidence) * 100).toFixed(0) : "";
+        detectedLetterEl.title = raw.label ? `${raw.label}${pct ? " · " + pct + "%" : ""}` : "";
+      } else if (raw.label) {
+        detectedLetterEl.textContent = raw.label;
+        detectedLetterEl.title =
+          raw.confidence != null ? String(Math.round(Number(raw.confidence) * 100)) + "%" : "";
       }
       serverWordEl.textContent = word || "ـ";
       renderAyat(progressIndex, wrongFlash);
@@ -308,7 +320,7 @@ async function initFatihaPage() {
       if (inferIntervalId != null) clearInterval(inferIntervalId);
       inferIntervalId = setInterval(() => {
         void tickInference();
-      }, 180);
+      }, 220);
     } catch (err) {
       console.error(err);
       statusEl.textContent = "تعذّر بدء الجلسة. تحقق من الكاميرا والاتصال.";

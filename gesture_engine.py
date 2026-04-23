@@ -25,9 +25,9 @@ class GestureStabilizer:
     Fast, lightweight stabilization (~3 effective frames of EMA, no history buffer):
     - EMA over class probabilities with alpha ≈ 0.5 (short memory)
     - Raw confidence tiers:
-        < 0.55  → never emit (ignore)
-        0.55–0.75 → normal stable window + cooldown
-        > 0.75  → shorter window + shorter cooldown
+        < 0.48  → never emit (ignore)
+        0.48–0.72 → normal stable window + cooldown
+        > 0.72  → shorter window + shorter cooldown
     - Release gate after emit to prevent duplicate letters on a held pose
     - EMA top-1 vs raw top-1 disagreement slows acceptance (reduces rapid wrong switching)
     """
@@ -75,9 +75,9 @@ class GestureStabilizer:
 
     @staticmethod
     def _confidence_tier(raw_conf: float) -> Optional[Tier]:
-        if raw_conf < 0.55:
+        if raw_conf < 0.48:
             return None
-        if raw_conf > 0.75:
+        if raw_conf > 0.72:
             return "fast"
         return "normal"
 
@@ -89,10 +89,10 @@ class GestureStabilizer:
             min_margin = 0.065
             min_ema = 0.48
         else:
-            stable_ms = 215
-            cooldown_ms = 275
-            min_margin = 0.10
-            min_ema = 0.52
+            stable_ms = 190
+            cooldown_ms = 250
+            min_margin = 0.08
+            min_ema = 0.47
 
         # Same raw class for 3+ inference steps → slightly faster (still capped for stability)
         if streak >= 3:

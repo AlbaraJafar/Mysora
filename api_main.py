@@ -50,8 +50,8 @@ _camera = CameraManager(camera_index=1)  # matches your original script default
 _leaderboard_lock = threading.Lock()
 _leaderboard: List[Dict[str, object]] = []  # in-memory leaderboard
 
-# Throttle / skip (per-session state on sess)
-_SIM_MEAN_ABS_MAX = 4.2  # skip if 224×224 grayscale barely changed
+# (Removed frame-similarity skip: holding a steady sign kept MAD low and blocked inference,
+# so the stabilizer never received enough updates to emit.)
 
 
 def _get_session(client_id: str) -> Dict[str, object]:
@@ -94,16 +94,6 @@ def _want_inference(sess: Dict[str, object], now: float) -> bool:
     return False
 
 
-def _too_similar(sess: Dict[str, object], gray224: np.ndarray, hand_ok: bool) -> bool:
-    if not hand_ok:
-        return False
-    prev = sess.get("_last_gray")
-    if prev is None or prev.shape != gray224.shape:
-        return False
-    mad = float(np.mean(np.abs(gray224.astype(np.int16) - prev.astype(np.int16))))
-    return mad < _SIM_MEAN_ABS_MAX
-
-
 def _build_predict_bundle(
     sess: Dict[str, object],
     pred,
@@ -118,7 +108,11 @@ def _build_predict_bundle(
     pos = _advance_over_spaces(target, int(sess.get("pos", 0)))
     complete = pos >= len(target)
     return {
-        "raw": {"label": pred.raw_label, "confidence": pred.raw_confidence},
+        "raw": {
+            "label": pred.raw_label,
+            "confidence": pred.raw_confidence,
+            "arabic_preview": letter_map.get(pred.raw_label, ""),
+        },
         "stable": {
             "emitted_label": pred.stable_label,
             "emitted_arabic": emitted_arabic,
@@ -271,14 +265,7 @@ async def predict(
     sess = _get_session(client_id)
     now = time.monotonic()
 
-    # No hand: skip model; reuse last response if any
-    if not hand_ok and sess.get("_last_bundle") is not None:
-        return _reuse_last_bundle(sess, hand_present=False, skipped=True)
-
     if sess.get("_last_bundle") is not None and not _want_inference(sess, now):
-        return _reuse_last_bundle(sess, hand_present=hand_ok, skipped=True)
-
-    if sess.get("_last_bundle") is not None and _too_similar(sess, crop, hand_ok):
         return _reuse_last_bundle(sess, hand_present=hand_ok, skipped=True)
 
     return _run_full_inference(sess, crop, hand_ok, now)
@@ -309,13 +296,7 @@ def camera_predict(client_id: str = Query(...), camera_index: int = 1):
     sess = _get_session(client_id)
     now = time.monotonic()
 
-    if not hand_ok and sess.get("_last_bundle") is not None:
-        return _reuse_last_bundle(sess, hand_present=False, skipped=True)
-
     if sess.get("_last_bundle") is not None and not _want_inference(sess, now):
-        return _reuse_last_bundle(sess, hand_present=hand_ok, skipped=True)
-
-    if sess.get("_last_bundle") is not None and _too_similar(sess, crop, hand_ok):
         return _reuse_last_bundle(sess, hand_present=hand_ok, skipped=True)
 
     return _run_full_inference(sess, crop, hand_ok, now)
