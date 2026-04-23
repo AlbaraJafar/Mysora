@@ -9,7 +9,7 @@ import copy
 
 import cv2
 import numpy as np
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -182,8 +182,8 @@ def _advance_over_spaces(target: str, pos: int) -> int:
 
 def _apply_attempt(sess: Dict[str, object], attempted: str) -> Dict[str, object]:
     """
-    Apply a single attempted Arabic character to the session.
-    Only accepts it if it matches the next expected non-space char.
+    Apply attempted Arabic text to the session (one or more codepoints, e.g. "ال", "لا").
+    Accepts only if it exactly matches the next substring of the target (after spaces).
     """
     target = str(sess["target"])
     pos = int(sess.get("pos", 0))
@@ -194,6 +194,23 @@ def _apply_attempt(sess: Dict[str, object], attempted: str) -> Dict[str, object]
 
     if pos >= len(target):
         return {"accepted": False, "expected": "", "attempted": attempted, "complete": True}
+
+    if not attempted:
+        return {"accepted": False, "expected": expected, "attempted": attempted, "complete": False}
+
+    # Multi-codepoint signs (letter_map: Al -> "ال", Laa -> "لا")
+    if len(attempted) > 1:
+        end = pos + len(attempted)
+        if end <= len(target) and target[pos:end] == attempted:
+            word += attempted
+            pos = end
+            sess["word"] = word
+            sess["pos"] = pos
+            pos2 = _advance_over_spaces(target, pos)
+            expected2 = target[pos2] if pos2 < len(target) else ""
+            complete = pos2 >= len(target)
+            return {"accepted": True, "expected": expected2, "attempted": attempted, "complete": complete}
+        return {"accepted": False, "expected": expected, "attempted": attempted, "complete": False}
 
     if attempted == expected:
         word += attempted
@@ -220,10 +237,17 @@ def _decode_image_bytes(data: bytes) -> np.ndarray:
 @app.get("/health")
 def health():
     """Liveness/readiness for Railway and other hosts."""
+    from pathlib import Path
+
+    import scripts.inference as inf
+
+    p = Path(inf.checkpoint_path)
+    nbytes = p.stat().st_size if p.is_file() else 0
     return {
         "ok": True,
         "service": "mysora-api",
         "inference": "cpu",
+        "model_checkpoint_bytes": nbytes,
     }
 
 
@@ -238,7 +262,7 @@ def get_fatiha_config():
 
 @app.post("/predict")
 async def predict(
-    client_id: str,
+    client_id: str = Query(...),
     image: UploadFile = File(...),
 ):
     data = await image.read()
@@ -261,7 +285,7 @@ async def predict(
 
 
 @app.post("/reset")
-def reset(client_id: str):
+def reset(client_id: str = Query(...)):
     sess = _get_session(client_id)
     stabilizer: GestureStabilizer = sess["stabilizer"]  # type: ignore[assignment]
     stabilizer.reset()
@@ -275,7 +299,7 @@ def reset(client_id: str):
 
 
 @app.get("/camera/predict")
-def camera_predict(client_id: str, camera_index: int = 1):
+def camera_predict(client_id: str = Query(...), camera_index: int = 1):
     # allow switching camera without restarting
     _camera.set_camera(camera_index)
     frame = _camera.read()

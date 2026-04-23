@@ -22,6 +22,16 @@ function getApiBase() {
 
 const API_BASE = getApiBase();
 
+if (typeof window !== "undefined") {
+  const host = window.location.hostname || "";
+  const looksVercel = host.endsWith(".vercel.app") || host.endsWith(".netlify.app");
+  if (looksVercel && API_BASE === window.location.origin) {
+    console.warn(
+      "[Mysora] Static host matches API base. Set <meta name=\"mysora-api-base\" content=\"https://YOUR-RAILWAY-URL\"> or window.MYSORA_API_BASE so /predict hits the backend."
+    );
+  }
+}
+
 async function fetchJson(url, opts = {}) {
   const res = await fetch(url, opts);
   if (!res.ok) throw new Error(`Request failed: ${res.status}`);
@@ -181,7 +191,7 @@ async function initFatihaPage() {
       ctx.drawImage(video, 0, 0, targetW, targetH);
 
       const blob = await new Promise((resolve) =>
-        canvas.toBlob(resolve, "image/jpeg", 0.6)
+        canvas.toBlob(resolve, "image/jpeg", 0.78)
       );
       if (!blob) return;
 
@@ -195,7 +205,11 @@ async function initFatihaPage() {
         method: "POST",
         body: form,
       });
-      if (!res.ok) throw new Error("predict failed");
+      if (!res.ok) {
+        const detail = await res.text().catch(() => "");
+        console.error("predict failed", res.status, detail.slice(0, 300));
+        throw new Error(`predict failed: ${res.status}`);
+      }
       const data = await res.json();
 
       const emitted = data?.stable?.emitted_arabic || "";

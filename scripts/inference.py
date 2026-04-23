@@ -25,6 +25,15 @@ MODEL_DOWNLOAD_URL = (
     "https://huggingface.co/Albaraajaafar/mysora-model/resolve/main/MysoraBestModel.pth"
 )
 
+# Hugging Face CDN sometimes throttles anonymous clients with default User-Agent; avoid tiny/HTML bodies.
+_HF_HEADERS = {
+    "User-Agent": "MysoraAPI/1.0 (+https://huggingface.co/Albaraajaafar/mysora-model)",
+    "Accept": "*/*",
+}
+
+# Real checkpoint ~90MB; HTML error pages are usually small
+_MIN_CHECKPOINT_BYTES = 8_000_000
+
 # build the same architecture used during training
 model = models.resnet50(weights=None)
 num_ftrs = model.fc.in_features
@@ -51,6 +60,30 @@ def _resolve_checkpoint_path() -> Path:
     return _canonical_default_model_path()
 
 
+def _validate_checkpoint_bytes(path: Path) -> None:
+    if not path.is_file():
+        raise RuntimeError(f"Model file missing: {path}")
+    sz = path.stat().st_size
+    if sz < _MIN_CHECKPOINT_BYTES:
+        raise RuntimeError(
+            f"Model file too small ({sz} bytes); expected a full .pth (>{_MIN_CHECKPOINT_BYTES}). "
+            "Check Hugging Face URL and network."
+        )
+    with open(path, "rb") as f:
+        head = f.read(512)
+    low = head.lower()
+    if b"<html" in low or b"<!doctype html" in low:
+        raise RuntimeError(
+            f"Model path contains HTML, not a PyTorch checkpoint: {path}. "
+            "Fix the download URL or HF repo visibility."
+        )
+    if head.startswith(b"PK"):
+        return
+    if len(head) >= 1 and head[0] == 0x80:
+        return
+    raise RuntimeError(f"File does not look like a PyTorch .pth (bad header): {path}")
+
+
 def _download_model(dest: Path) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
     print("Downloading model...", flush=True)
@@ -60,6 +93,7 @@ def _download_model(dest: Path) -> None:
             MODEL_DOWNLOAD_URL,
             stream=True,
             timeout=(30, 600),
+            headers=_HF_HEADERS,
         ) as resp:
             try:
                 resp.raise_for_status()
@@ -72,6 +106,7 @@ def _download_model(dest: Path) -> None:
                     if chunk:
                         f.write(chunk)
         tmp.replace(dest)
+        _validate_checkpoint_bytes(dest)
     except requests.RequestException as e:
         if tmp.exists():
             tmp.unlink(missing_ok=True)
@@ -103,9 +138,20 @@ if not checkpoint_path_obj.is_file():
 
 checkpoint_path = checkpoint_path_obj.as_posix()
 
+_validate_checkpoint_bytes(checkpoint_path_obj)
+
 try:
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
-    model.load_state_dict(checkpoint["model_state_dict"])
+    if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
+        state = checkpoint["model_state_dict"]
+    elif isinstance(checkpoint, dict) and "state_dict" in checkpoint:
+        state = checkpoint["state_dict"]
+    else:
+        raise RuntimeError(
+            "Checkpoint has no 'model_state_dict' or 'state_dict' key; "
+            f"keys: {list(checkpoint.keys())[:25] if isinstance(checkpoint, dict) else type(checkpoint)}"
+        )
+    model.load_state_dict(state)
 except Exception as e:
     raise RuntimeError(
         f"Failed to load model checkpoint at '{checkpoint_path}'. "
