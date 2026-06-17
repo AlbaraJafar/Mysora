@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="mysora-api-base" content="" />
+  <title>المساهمة في البيانات - ميسورا</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&display=swap" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="page page-collect">
+  <header class="header">
+    <div class="header-inner">
+      <div class="header-left">
+        <a href="/" class="back-link">↩ الرجوع</a>
+      </div>
+      <div class="header-center">
+        <h1 class="logo">ميسورا</h1>
+        <div class="subtitle">جمع بيانات لغة الإشارة السعودية</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="content content--collect">
+    <!-- Screen 1: Welcome + Consent -->
+    <section id="screen-welcome" class="panel collect-screen">
+      <h2 class="panel-title">ساعد في تطوير ميسورة</h2>
+      <p class="collect-lead">بياناتك تساعد الصم على التواصل — نبني أول مجموعة بيانات مجتمعية للإشارة السعودية.</p>
+
+      <form id="form-session" class="collect-form">
+        <label class="collect-field">
+          <span class="collect-label">نوع المستخدم</span>
+          <select id="signer-type" name="signer_type" required class="collect-select">
+            <option value="">اختر…</option>
+            <option value="deaf">أصم / ضعيف سمع</option>
+            <option value="hearing">سميع</option>
+          </select>
+        </label>
+
+        <label class="collect-field">
+          <span class="collect-label">اليد المهيمنة</span>
+          <select id="dominant-hand" name="dominant_hand" required class="collect-select">
+            <option value="">اختر…</option>
+            <option value="right">يمين</option>
+            <option value="left">يسار</option>
+          </select>
+        </label>
+
+        <label class="collect-field">
+          <span class="collect-label">سنوات الخبرة بلغة الإشارة</span>
+          <input id="experience-years" name="experience_years" type="number" min="0" max="80" value="3" required class="collect-select" />
+        </label>
+
+        <label class="collect-consent">
+          <input id="consent" type="checkbox" required />
+          <span>أوافق على مشاركة تسجيلاتي لأغراض بحثية</span>
+        </label>
+
+        <p id="welcome-error" class="collect-error" hidden></p>
+        <button type="submit" class="btn btn-primary collect-submit">ابدأ المساهمة</button>
+      </form>
+    </section>
+
+    <!-- Screen 2: Calibration -->
+    <section id="screen-calibration" class="panel collect-screen" hidden>
+      <h2 class="panel-title">معايرة الكاميرا</h2>
+      <p class="hint">تأكد أن يدك ظاهرة بوضوح قبل التسجيل.</p>
+
+      <div class="camera-container collect-camera">
+        <video id="collect-video" autoplay playsinline muted></video>
+        <canvas id="collect-canvas" width="640" height="480" hidden></canvas>
+        <div class="overlay">
+          <div id="calibration-status" class="calibration-status calibration-status--warn">
+            جاري تهيئة الكاميرا…
+          </div>
+        </div>
+      </div>
+
+      <div class="controls collect-controls">
+        <button id="btn-start-recording" type="button" class="btn btn-primary" disabled>ابدأ التسجيل</button>
+      </div>
+    </section>
+
+    <!-- Screen 3: Letter collection loop -->
+    <section id="screen-collect" class="panel collect-screen" hidden>
+      <div class="collect-letter-header">
+        <div class="collect-letter-meta">
+          <span id="priority-badge" class="priority-badge priority-badge--critical">أولوية عالية</span>
+          <span id="letter-progress-text" class="hint">0 / 100</span>
+        </div>
+        <div id="target-letter" class="collect-target-letter">ـ</div>
+        <p id="collect-instruction" class="collect-instruction">شكّل الحرف أمام الكاميرا ثم اضغط «سجّل».</p>
+        <div class="collect-progress-bar" aria-hidden="true">
+          <div id="letter-progress-fill" class="collect-progress-fill" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="camera-container collect-camera">
+        <video id="collect-video-loop" autoplay playsinline muted></video>
+        <div class="overlay">
+          <div id="hand-status-loop" class="calibration-status calibration-status--warn">…</div>
+        </div>
+      </div>
+
+      <div id="orientation-row" class="collect-orientation">
+        <span class="collect-label">اتجاه راحة اليد (مهم لط وظ):</span>
+        <label class="collect-radio"><input type="radio" name="hand_orientation" value="front" checked /> أمامية</label>
+        <label class="collect-radio"><input type="radio" name="hand_orientation" value="back" /> خلفية</label>
+      </div>
+
+      <p id="session-clips-count" class="hint">تسجيلاتك في هذه الجلسة: 0</p>
+      <p id="collect-error" class="collect-error" hidden></p>
+
+      <div class="controls collect-controls">
+        <button id="btn-record-clip" type="button" class="btn btn-primary">سجّل الإشارة</button>
+        <button id="btn-next-letter" type="button" class="btn">حرف آخر</button>
+        <button id="btn-finish" type="button" class="btn">إنهاء المساهمة</button>
+      </div>
+
+      <details class="collect-stats">
+        <summary>تقدّم المجموعة</summary>
+        <p id="global-progress-text" class="hint">…</p>
+      </details>
+    </section>
+
+    <!-- Screen 4: Thank you -->
+    <section id="screen-thanks" class="panel collect-screen" hidden>
+      <h2 class="panel-title">شكراً لمساهمتك</h2>
+      <p class="collect-lead">سجّلت <strong id="thanks-clip-count">0</strong> إشارة في هذه الجلسة. بياناتك تساعد في تحسين ميسورة للجميع.</p>
+      <div class="controls collect-controls">
+        <a href="/" class="btn">العودة للرئيسية</a>
+        <button id="btn-collect-again" type="button" class="btn btn-primary">مساهمة جديدة</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <script src="collect.js"></script>
+</body>
+</html>

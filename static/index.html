@@ -2,58 +2,377 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <!-- Empty = same origin. On Vercel, set to your Railway API URL (https://…railway.app, no trailing slash). -->
   <meta name="mysora-api-base" content="" />
-  <title>ميسورا - تعلم القرآن بالإشارة</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ميسورة — لغة الإشارة العربية</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&display=swap" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="page page-home">
-  <header class="header">
-    <div class="header-inner">
-      <h1 class="logo">ميسورا</h1>
-      <div class="subtitle">تعلم القرآن الكريم بلغة الإشارة</div>
-    </div>
-  </header>
 
-  <main class="content">
-    <section class="panel">
-      <h2 class="panel-title">السور</h2>
-      <ul class="surah-list">
-        <li>
-          <a href="fatiha.html" class="surah-item surah-item--enabled">
-            <span class="surah-name">الفاتحة</span>
-            <span class="surah-status surah-status--active">متاح الآن</span>
-          </a>
-        </li>
-        <!-- Placeholder items for other surahs -->
-        <li class="surah-item surah-item--disabled">
-          <span class="surah-name">البقرة</span>
-          <span class="surah-status">قريباً</span>
-        </li>
-        <li class="surah-item surah-item--disabled">
-          <span class="surah-name">آل عمران</span>
-          <span class="surah-status">قريباً</span>
-        </li>
-        <li class="surah-item surah-item--disabled">
-          <span class="surah-name">النساء</span>
-          <span class="surah-status">قريباً</span>
-        </li>
-        <li class="surah-item surah-item--disabled">
-          <span class="surah-name">المائدة</span>
-          <span class="surah-status">قريباً</span>
-        </li>
+  <!-- ===== SECTION 1: NAVBAR ===== -->
+  <nav class="navbar" id="navbar">
+    <div class="navbar-inner">
+      <a href="#" class="navbar-logo">ميسورة</a>
+      <button class="navbar-burger" id="nav-burger" aria-label="فتح القائمة">☰</button>
+      <ul class="navbar-links" id="nav-links">
+        <li><a href="#من-نحن">من نحن</a></li>
+        <li><a href="#services">خدماتنا</a></li>
+        <li><a href="#contact">تواصل معنا</a></li>
+        <li><a href="fatiha.html" class="navbar-cta">ابدأ التعلم</a></li>
       </ul>
-      <p class="hint">سيتم إضافة باقي السور تدريجياً بإذن الله.</p>
-    </section>
+    </div>
+  </nav>
 
-    <section class="panel">
-      <h2 class="panel-title">ترتيب الطلاب</h2>
-      <div id="leaderboard-home" class="leaderboard"></div>
-    </section>
-  </main>
+  <!-- ===== SECTION 2: HERO ===== -->
+  <section id="hero" class="hero">
+    <div class="hero-inner">
+      <span class="hero-eyebrow">🤲 لذوي الاحتياجات السمعية و النطقية</span>
+      <h1 class="hero-headline">
+        التقنية التي يستحقها<br>متحدثي لغة الإشارة
+      </h1>
+      <p class="hero-sub">
+        ميسورة تتعرف على لغة الإشارة العربية في الوقت الفعلي —
+        تُمكّن متحدثي لغة الأشارة من تعلم القرآن الكريم و حفضه
+      </p>
+      <div class="hero-actions">
+        <a href="fatiha.html" class="btn btn-primary btn-lg">ابدأ التعلم الآن ←</a>
+        <a href="#services" class="btn btn-outline btn-lg">تعرّف على خدماتنا</a>
+      </div>
+      <span class="hero-beta">نسخة تجريبية</span>
+    </div>
+  </section>
+
+  <!-- ===== SECTION 3: WHO WE SERVE ===== -->
+  <section id="من-نحن" class="section">
+    <div class="section-inner">
+      <h2 class="section-title">نخدم مجتمعاً بأكمله</h2>
+      <p class="section-sub">
+        ميسورة ليست مجرد تطبيق — هي بنية تحتية لتمكين
+        الوصول و المساهمة الفعالة في تجربة التعلم لمتحدثي لغة الاشارة في العالم العربي
+      </p>
+      <div class="cards-grid">
+        <div class="card">
+          <div class="card-icon">🤲</div>
+          <h3 class="card-title">مجتمع متحدثي لغة الإشارة</h3>
+          <p class="card-text">
+            أدوات تعلم مجانية تُمكّن متحدثي لغة الإشارة من تعلم
+            القرآن الكريم والحروف العربية باستقلالية
+            تامة من أي جهاز وفي أي وقت
+          </p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🔬</div>
+          <h3 class="card-title">الباحثون والأكاديميون</h3>
+          <p class="card-text">
+            نعمل لبناء قاعدة بيانات مجتمعية للغة الإشارة لغرض بناء اول نظام
+            يقوم بترجمة لغة الإشارة في العالم. و نرحب بالشراكات
+            البحثية والتعاون الأكاديمي
+          </p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🏢</div>
+          <h3 class="card-title">المؤسسات والشركات</h3>
+          <p class="card-text">
+            نساعد المؤسسات على جعل منتجاتها
+            الرقمية صديقة لذوي التحديات السمعية والنطقية من خلال توظيف احدث
+            تقنيات الذكاء الاصطناعي
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SECTION 4: HOW IT WORKS ===== -->
+  <section id="كيف-تعمل" class="section section-alt">
+    <div class="section-inner">
+      <h2 class="section-title">كيف يعمل التطبيق؟</h2>
+      <p class="section-sub">ثلاث خطوات — ما تحتاج لأي جهاز خاص</p>
+      <div class="steps-grid">
+        <div class="step">
+          <div class="step-num">١</div>
+          <h3 class="step-title">افتح الكاميرا</h3>
+          <p class="step-text">كاميرا الجوال أو الابتوب تكفي تماماً</p>
+        </div>
+        <div class="step">
+          <div class="step-num">٢</div>
+          <h3 class="step-title">ابدا بالتسميع بلغة الإشارة</h3>
+          <p class="step-text">
+            وجّه يدك نحو الكاميرا وابدأ بتشكيل
+            حروف السورة واحداً تلو الآخر بالإشارة
+          </p>
+        </div>
+        <div class="step">
+          <div class="step-num">٣</div>
+          <h3 class="step-title">تابع تقدمك</h3>
+          <p class="step-text">
+            ميسورة تتعرف على إشاراتك فوراً وتؤكد
+            كل حرف قبل الانتقال للتالي تلقائياً
+          </p>
+        </div>
+      </div>
+      <div class="section-cta">
+        <a href="fatiha.html" class="btn btn-primary btn-lg">جرّب الآن مجاناً ←</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SECTION 5: AVAILABLE NOW ===== -->
+  <section id="available" class="section">
+    <div class="section-inner">
+      <h2 class="section-title">ما المتاح الآن؟</h2>
+
+      <div class="available-stack">
+        <!-- Letters card (new) -->
+        <div class="available-card panel">
+          <span class="avail-badge avail-badge--active">متاح الآن</span>
+          <h3 class="available-card-title">تدرّب على الحروف العربية</h3>
+          <p class="available-card-text">تدرّب على جميع الحروف</p>
+          <a href="/letters.html" class="btn btn-primary">تدرّب على الحروف</a>
+        </div>
+
+        <!-- Existing surah list (unchanged) -->
+        <div class="panel">
+          <h2 class="panel-title">السور</h2>
+          <ul class="surah-list">
+            <li>
+              <a href="fatiha.html" class="surah-item surah-item--enabled">
+                <span class="surah-name">الفاتحة</span>
+                <span class="surah-status surah-status--active">متاح الآن</span>
+              </a>
+            </li>
+            <li class="surah-item surah-item--disabled">
+              <span class="surah-name">البقرة</span>
+              <span class="surah-status">قريباً</span>
+            </li>
+            <li class="surah-item surah-item--disabled">
+              <span class="surah-name">آل عمران</span>
+              <span class="surah-status">قريباً</span>
+            </li>
+            <li class="surah-item surah-item--disabled">
+              <span class="surah-name">النساء</span>
+              <span class="surah-status">قريباً</span>
+            </li>
+            <li class="surah-item surah-item--disabled">
+              <span class="surah-name">المائدة</span>
+              <span class="surah-status">قريباً</span>
+            </li>
+          </ul>
+          <p class="hint">سيتم إضافة باقي السور تدريجياً بإذن الله.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SECTION 6: LEADERBOARD ===== -->
+  <section id="leaderboard-section" class="section section-alt">
+    <div class="section-inner">
+      <h2 class="section-title">ترتيب الطلاب</h2>
+      <div class="panel">
+        <div id="leaderboard-home" class="leaderboard"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SECTION 7: SERVICES ===== -->
+  <section id="services" class="section">
+    <div class="section-inner">
+      <h2 class="section-title">خدماتنا</h2>
+      <p class="section-sub">
+        نساعد الباحثين والمؤسسات على خدمة مجتمع متحدثي لغة الإشارة
+        بتقنيات الذكاء الاصطناعي
+      </p>
+      <div class="cards-grid">
+        <div class="card service-card">
+          <div class="card-icon">🌐</div>
+          <h3 class="card-title">تحسين المواقع لجعلها صديقة لمتحدثي لغة الإشارة</h3>
+          <p class="card-text">
+            نحوّل المواقع والتطبيقات الرقمية إلى
+            تجارب شاملة لمتحدثي لغة الإشارة — من خلال
+            دمج التعرف على الإشارات وتقنيات
+            إمكانية الوصول بالذكاء الاصطناعي
+          </p>
+          <button
+            class="btn btn-primary service-cta"
+            data-subject="طلب خدمة: جعل الموقع صديقاً لمتحدثي لغة الإشارة">
+            تواصل معنا
+          </button>
+        </div>
+        <div class="card service-card">
+          <div class="card-icon">📊</div>
+          <h3 class="card-title">جمع البيانات للباحثين</h3>
+          <p class="card-text">
+            نصمم وننفذ حملات جمع بيانات لغة الإشارة
+            لأغراض البحث العلمي — بروتوكول احترافي،
+            وبيانات عالية الجودة
+            للمنافسة في المؤتمرات العالمية مثل (CVPR)
+          </p>
+          <button
+            class="btn btn-primary service-cta"
+            data-subject="طلب خدمة: جمع البيانات البحثية">
+            تواصل معنا
+          </button>
+        </div>
+        <div class="card service-card">
+          <div class="card-icon">🔗</div>
+          <h3 class="card-title">دمج التعرف على الإشارات</h3>
+          <p class="card-text">
+            ندمج تقنية التعرف على لغة الإشارة
+            العربية في تطبيقاتكم ومنصاتكم الحالية —
+            من المستشفيات إلى منصات التعليم
+            والبوابات الحكومية
+          </p>
+          <button
+            class="btn btn-primary service-cta"
+            data-subject="طلب خدمة: دمج التعرف على الإشارات">
+            تواصل معنا
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SECTION 8: CONTACT ===== -->
+  <section id="contact" class="section section-alt">
+    <div class="section-inner">
+      <h2 class="section-title">تواصل معنا</h2>
+      <p class="section-sub">
+        سواء كنت من مجتمع متحدثي لغة الإشارة، أو باحث، أو مؤسسة —
+        يسعدنا العمل معك
+      </p>
+      <form id="contact-form" class="contact-form">
+        <input
+          type="text"
+          id="contact-subject"
+          name="subject"
+          class="contact-input"
+          placeholder="الموضوع"
+          required
+        />
+        <textarea
+          name="message"
+          class="contact-input contact-textarea"
+          rows="5"
+          placeholder="رسالتك..."
+          required
+        ></textarea>
+        <button type="submit" class="btn btn-primary contact-submit">إرسال الرسالة ←</button>
+      </form>
+      <div id="contact-success" class="contact-msg contact-msg--success" style="display:none">
+        ✅ تم الإرسال بنجاح — شكراً لتواصلك، سنرد عليك قريباً
+      </div>
+      <div id="contact-error" class="contact-msg contact-msg--error" style="display:none">
+        ❌ حدث خطأ في الإرسال — يرجى المراسلة على
+        <a href="mailto:mysoraapp@gmail.com" style="color:inherit;text-decoration:underline">mysoraapp@gmail.com</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SECTION 9: FOOTER ===== -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-col">
+        <div class="footer-logo">ميسورة</div>
+        <div class="footer-copy">© 2026 — تقنية في خدمة مجتمع الصم</div>
+      </div>
+      <div class="footer-col footer-col--center">
+        <p class="footer-tech">بُني بـ MediaPipe · ResNet-50 · FastAPI</p>
+      </div>
+      <div class="footer-col footer-col--icons">
+        <div class="footer-social">
+          <a
+            href="https://www.linkedin.com/company/mysora-%D9%85%D9%8A%D8%B3%D9%88%D8%B1%D8%A2/"
+            class="footer-social-link"
+            target="_blank"
+            rel="noopener"
+            aria-label="LinkedIn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+            </svg>
+          </a>
+          <a
+            href="https://x.com/mysora_app?s=21"
+            class="footer-social-link"
+            target="_blank"
+            rel="noopener"
+            aria-label="X">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </a>
+          <a
+            href="mailto:mysoraapp@gmail.com"
+            class="footer-social-link"
+            aria-label="البريد الإلكتروني">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
 
   <script src="app.js"></script>
+  <script>
+    /* 1 — Navbar hamburger */
+    const burger = document.getElementById('nav-burger');
+    const navLinks = document.getElementById('nav-links');
+    burger.addEventListener('click', () => {
+      navLinks.classList.toggle('nav-open');
+    });
+
+    /* 2 — Smooth scroll for all anchor links */
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) target.scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+
+    /* 3 — Services CTA → pre-fill contact subject + smooth scroll */
+    document.querySelectorAll('[data-subject]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        const subject = btn.getAttribute('data-subject');
+        const subjectField = document.getElementById('contact-subject');
+        if (subjectField) subjectField.value = subject;
+        document.getElementById('contact').scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+
+    /* 4 — Contact form */
+    document.getElementById('contact-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const form = e.target;
+      const btn = form.querySelector('button[type=submit]');
+      const successEl = document.getElementById('contact-success');
+      const errorEl   = document.getElementById('contact-error');
+
+      successEl.style.display = 'none';
+      errorEl.style.display   = 'none';
+      btn.disabled    = true;
+      btn.textContent = 'جارٍ الإرسال...';
+
+      try {
+        const res = await fetch('/contact', {
+          method: 'POST',
+          body: new FormData(form)
+        });
+        if (res.ok) {
+          successEl.style.display = 'block';
+          form.reset();
+        } else {
+          errorEl.style.display = 'block';
+        }
+      } catch {
+        errorEl.style.display = 'block';
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = 'إرسال الرسالة ←';
+      }
+    });
+  </script>
 </body>
 </html>
-

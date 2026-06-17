@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import os
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from pathlib import Path
 from typing import Dict, Optional, List
 import threading
@@ -9,16 +12,23 @@ import copy
 
 import cv2
 import numpy as np
-from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
+from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 
 from scripts.inference import predict_proba
 from scripts.hand_crop import prepare_for_inference
 from gesture_engine import GestureStabilizer
 from mysora_letters import letter_map, target_fatiha, fatiha_verses
 from camera_manager import CameraManager
+from collect_data import (
+    create_session,
+    get_next_letter,
+    get_progress,
+    save_clip,
+)
 
 _BASE_DIR = Path(__file__).resolve().parent
 _STATIC_DIR = _BASE_DIR / "static"
@@ -326,6 +336,181 @@ def leaderboard_top(limit: int = 10):
         return {"entries": _leaderboard[: max(1, min(limit, 20))]}
 
 
+# ============ Data collection (community dataset) ============
+
+
+class CollectSessionBody(BaseModel):
+    signer_type: str = Field(..., pattern="^(deaf|hearing)$")
+    dominant_hand: str = Field(..., pattern="^(right|left)$")
+    experience_years: int = Field(..., ge=0, le=80)
+
+
+@app.post("/collect/session")
+def collect_session(body: CollectSessionBody):
+    try:
+        return create_session(
+            signer_type=body.signer_type,  # type: ignore[arg-type]
+            dominant_hand=body.dominant_hand,  # type: ignore[arg-type]
+            experience_years=body.experience_years,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/collect/clip")
+async def collect_clip(
+    frame_data: str = Form(...),
+    label: str = Form(...),
+    label_type: str = Form("letter"),
+    session_id: str = Form(...),
+    signer_id: str = Form(...),
+    hand_orientation: str = Form("front"),
+    confidence: float = Form(0.0),
+    thumbnail_b64: Optional[str] = Form(None),
+):
+    if label_type not in ("letter", "word", "sentence"):
+        raise HTTPException(status_code=400, detail="Invalid label_type")
+    if hand_orientation not in ("front", "back"):
+        raise HTTPException(status_code=400, detail="Invalid hand_orientation")
+    try:
+        return save_clip(
+            frame_data=frame_data,
+            label=label.strip(),
+            label_type=label_type,  # type: ignore[arg-type]
+            session_id=session_id.strip(),
+            signer_id=signer_id.strip(),
+            hand_orientation=hand_orientation,  # type: ignore[arg-type]
+            confidence=confidence,
+            thumbnail_b64=thumbnail_b64,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/collect/progress")
+def collect_progress():
+    return get_progress()
+
+
+@app.get("/collect/next-letter")
+def collect_next_letter():
+    return get_next_letter()
+
+
+@app.get("/collect/admin")
+def collect_admin(password: str = ""):
+    admin_pw = os.environ.get("ADMIN_PASSWORD", "")
+    if not admin_pw or password != admin_pw:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    progress = get_progress()
+    total = progress.get("total_clips", 0)
+    by_letter = progress.get("by_letter", {})
+    target = 100
+
+    rows = ""
+    priority_letters = ["ح", "و", "ق", "ب", "ث", "ز", "ه", "ل", "ط", "ظ", "أ", "ت", "ن"]
+    for letter in priority_letters:
+        count = by_letter.get(letter, 0)
+        pct = min(int(count / target * 100), 100)
+        color = "#2ea043" if pct >= 100 else "#d29922" if pct > 0 else "#f85149"
+        rows += f"""
+          <tr>
+            <td style='font-size:24px;
+                       text-align:center'>{letter}</td>
+            <td>
+              <div style='background:#30363d;
+                          border-radius:4px;height:20px'>
+                <div style='background:{color};
+                            width:{pct}%;height:20px;
+                            border-radius:4px'></div>
+              </div>
+            </td>
+            <td style='text-align:center;
+                       color:{color}'>{count}/{target}</td>
+          </tr>"""
+
+    html = f"""<!DOCTYPE html>
+      <html dir='rtl' lang='ar'>
+      <head>
+        <meta charset='UTF-8'>
+        <title>Mysora Admin</title>
+        <style>
+          body{{background:#0d1117;color:#f0f6fc;
+               font-family:Calibri;padding:2rem}}
+          table{{width:100%;border-collapse:collapse}}
+          td{{padding:12px;border-bottom:
+              1px solid #21262d}}
+          h1{{color:#00b4d8}}
+          .stat{{background:#161b22;padding:1rem;
+                 border-radius:8px;margin:1rem 0;
+                 display:inline-block;min-width:150px;
+                 text-align:center}}
+          .stat-num{{font-size:2rem;
+                     color:#2ea043;font-weight:bold}}
+        </style>
+      </head>
+      <body>
+        <h1>📊 Mysora Dataset Admin</h1>
+        <div class='stat'>
+          <div class='stat-num'>{total}</div>
+          <div>Total Clips</div>
+        </div>
+        <div class='stat'>
+          <div class='stat-num'>
+            {progress.get('sessions_today', 0)}
+          </div>
+          <div>Sessions Today</div>
+        </div>
+        <h2>Letter Progress</h2>
+        <table>{rows}</table>
+      </body>
+      </html>"""
+
+    return HTMLResponse(html)
+
+
+@app.post("/contact")
+async def contact_form(
+    subject: str = Form(...),
+    message: str = Form(...),
+):
+    try:
+        smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+        smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+        smtp_user = os.environ.get("SMTP_USER", "")
+        smtp_pass = os.environ.get("SMTP_PASS", "")
+        to_email  = os.environ.get("CONTACT_EMAIL", smtp_user)
+
+        if not smtp_user or not smtp_pass:
+            print(f"[CONTACT] {subject}: {message}")
+            return {"status": "ok"}
+
+        msg = MIMEMultipart()
+        msg["From"]    = smtp_user
+        msg["To"]      = to_email
+        msg["Subject"] = f"[ميسورة] {subject}"
+        body = (
+            f"موضوع: {subject}\n\n"
+            f"الرسالة:\n{message}\n\n"
+            f"---\nأُرسلت من موقع ميسورة"
+        )
+        msg.attach(MIMEText(body, "plain", "utf-8"))
+
+        with smtplib.SMTP(smtp_host, smtp_port) as s:
+            s.starttls()
+            s.login(smtp_user, smtp_pass)
+            s.send_message(msg)
+
+        return {"status": "ok"}
+
+    except Exception as e:
+        print(f"[CONTACT ERROR] {e}")
+        raise HTTPException(status_code=500, detail="فشل الإرسال")
+
+
 if _STATIC_DIR.is_dir():
     app.mount(
         "/static",
@@ -365,6 +550,22 @@ def _fatiha_html():
     if not p.is_file():
         raise HTTPException(status_code=404)
     return FileResponse(str(p), media_type="text/html; charset=utf-8")
+
+
+@app.get("/collect.html")
+def _collect_html():
+    p = _STATIC_DIR / "collect.html"
+    if not p.is_file():
+        raise HTTPException(status_code=404)
+    return FileResponse(str(p), media_type="text/html; charset=utf-8")
+
+
+@app.get("/collect.js")
+def _collect_js():
+    p = _STATIC_DIR / "collect.js"
+    if not p.is_file():
+        raise HTTPException(status_code=404)
+    return FileResponse(str(p), media_type="application/javascript")
 
 
 if __name__ == "__main__":
