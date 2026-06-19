@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="mysora-api-base" content="" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تدرّب على الحروف — ميسورة</title>
+  <link rel="icon" type="image/jpeg" href="/logo-dark.jpeg" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&display=swap" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="page page-letters">
+
+  <!-- ===== HEADER ===== -->
+  <header class="letters-header">
+    <div class="letters-header-inner">
+      <a href="/" class="back-link">→ العودة</a>
+      <h1 class="letters-title">تدرّب على الحروف</h1>
+      <div class="letters-counter" id="letters-counter">١ / ٢٨</div>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="letters-main">
+    <div class="letter-card panel">
+
+      <!-- Letter display -->
+      <div class="letter-display-area">
+        <div class="letter-char" id="letter-char">أ</div>
+        <div class="letter-meta">
+          <span class="letter-name" id="letter-name">ألف</span>
+          <span class="letter-badge letter-badge--weak" id="letter-badge">قيد التحسين</span>
+        </div>
+      </div>
+
+      <!-- Camera + detection -->
+      <div class="letters-camera-wrap">
+        <div class="camera-container" id="camera-container">
+          <video id="video" autoplay playsinline muted></video>
+          <canvas id="capture-canvas" hidden></canvas>
+          <!-- Success overlay — shown when letter matches for 800 ms -->
+          <div class="success-overlay" id="success-overlay">
+            <span class="success-check">✅</span>
+            <p class="success-text">أحسنت! الحرف صحيح</p>
+          </div>
+        </div>
+        <div class="detected-area">
+          <span class="detected-label">الحرف المكتشف:</span>
+          <span class="detected-letter" id="detected-letter">ـ</span>
+        </div>
+      </div>
+
+      <p class="hint">ضع يدك أمام الكاميرا وشكّل الحرف المطلوب</p>
+
+      <!-- Navigation controls -->
+      <div class="nav-controls">
+        <button class="nav-btn" id="btn-prev" disabled>→ السابق</button>
+        <div class="nav-dots" id="nav-dots"></div>
+        <button class="nav-btn" id="btn-next">← التالي</button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ===== COMPLETION OVERLAY ===== -->
+  <div class="completion-overlay" id="completion-overlay">
+    <div class="completion-card">
+      <div class="completion-emoji">🎉</div>
+      <h2 class="completion-title">أتممت جميع الحروف!</h2>
+      <p class="completion-text">لقد تدربت على كل حروف لغة الإشارة العربية</p>
+      <div class="completion-actions">
+        <button class="btn btn-primary" id="btn-restart">ابدأ من جديد</button>
+        <a href="/" class="btn btn-outline">العودة للرئيسية</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- app.js provides: getClientId(), API_BASE — its page-init functions are no-ops here -->
+  <script src="app.js"></script>
+  <script>
+    /* ================================================================
+       LETTERS PAGE — all logic self-contained in this block.
+       Camera capture + /predict polling: directly adapted from the
+       tickInference() / startSession() pattern in app.js / fatiha.html.
+       NOT reinvented — same canvas size (640×480), same interval (220 ms),
+       same FormData shape, same response fields used.
+       ================================================================ */
+
+    const LETTERS = [
+      { char: 'أ', name: 'ألف',  weak: true  },
+      { char: 'ب', name: 'باء',  weak: true  },
+      { char: 'ت', name: 'تاء',  weak: true  },
+      { char: 'ث', name: 'ثاء',  weak: true  },
+      { char: 'ج', name: 'جيم',  weak: false },
+      { char: 'ح', name: 'حاء',  weak: true  },
+      { char: 'خ', name: 'خاء',  weak: false },
+      { char: 'د', name: 'دال',  weak: false },
+      { char: 'ذ', name: 'ذال',  weak: false },
+      { char: 'ر', name: 'راء',  weak: false },
+      { char: 'ز', name: 'زاي',  weak: true  },
+      { char: 'س', name: 'سين',  weak: false },
+      { char: 'ش', name: 'شين',  weak: false },
+      { char: 'ص', name: 'صاد',  weak: false },
+      { char: 'ض', name: 'ضاد',  weak: false },
+      { char: 'ط', name: 'طاء',  weak: true  },
+      { char: 'ظ', name: 'ظاء',  weak: true  },
+      { char: 'ع', name: 'عين',  weak: false },
+      { char: 'غ', name: 'غين',  weak: false },
+      { char: 'ف', name: 'فاء',  weak: false },
+      { char: 'ق', name: 'قاف',  weak: true  },
+      { char: 'ك', name: 'كاف',  weak: false },
+      { char: 'ل', name: 'لام',  weak: false },
+      { char: 'م', name: 'ميم',  weak: false },
+      { char: 'ن', name: 'نون',  weak: false },
+      { char: 'ه', name: 'هاء',  weak: false },
+      { char: 'و', name: 'واو',  weak: true  },
+      { char: 'ي', name: 'ياء',  weak: false },
+    ];
+
+    /* ---- state ---- */
+    let currentIndex    = 0;
+    let matchStartTime  = null;   // ms timestamp when continuous match started
+    let matchLocked     = false;  // true while success animation is playing
+    let stream          = null;
+    let sending         = false;
+    let inferIntervalId = null;
+
+    /* ---- DOM refs ---- */
+    const letterCharEl      = document.getElementById('letter-char');
+    const letterNameEl      = document.getElementById('letter-name');
+    const letterBadgeEl     = document.getElementById('letter-badge');
+    const lettersCounterEl  = document.getElementById('letters-counter');
+    const cameraContainer   = document.getElementById('camera-container');
+    const videoEl           = document.getElementById('video');
+    const canvasEl          = document.getElementById('capture-canvas');
+    const detectedLetterEl  = document.getElementById('detected-letter');
+    const successOverlayEl  = document.getElementById('success-overlay');
+    const navDotsEl         = document.getElementById('nav-dots');
+    const btnPrev           = document.getElementById('btn-prev');
+    const btnNext           = document.getElementById('btn-next');
+    const completionOverlay = document.getElementById('completion-overlay');
+    const btnRestart        = document.getElementById('btn-restart');
+
+    /* ---- Arabic numeral conversion ---- */
+    function toAr(n) {
+      return String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+    }
+
+    /* ---- UI update helpers ---- */
+
+    function updateLetterDisplay() {
+      const L = LETTERS[currentIndex];
+      letterCharEl.textContent = L.char;
+      letterNameEl.textContent = L.name;
+      if (L.weak) {
+        letterBadgeEl.textContent = 'قيد التحسين';
+        letterBadgeEl.className   = 'letter-badge letter-badge--weak';
+      } else {
+        letterBadgeEl.textContent = 'دقة عالية';
+        letterBadgeEl.className   = 'letter-badge letter-badge--strong';
+      }
+    }
+
+    function updateCounter() {
+      lettersCounterEl.textContent =
+        toAr(currentIndex + 1) + ' / ' + toAr(LETTERS.length);
+    }
+
+    function updateNavControls() {
+      btnPrev.disabled = (currentIndex === 0);
+      btnNext.disabled = (currentIndex === LETTERS.length - 1);
+    }
+
+    function updateDots() {
+      navDotsEl.innerHTML = '';
+      // Always render 5 slots: 2 before, current, 2 after.
+      // Out-of-range slots get .invisible (visibility:hidden) to keep layout stable.
+      [-2, -1, 0, 1, 2].forEach(offset => {
+        const idx = currentIndex + offset;
+        const dot = document.createElement('span');
+        dot.className = 'nav-dot';
+        if (offset === 0)                        dot.classList.add('active');
+        if (idx < 0 || idx >= LETTERS.length)    dot.classList.add('invisible');
+        navDotsEl.appendChild(dot);
+      });
+    }
+
+    /* ---- Recognition state reset ---- */
+
+    function resetRecognitionState() {
+      matchStartTime = null;
+      matchLocked    = false;
+      detectedLetterEl.textContent  = 'ـ';
+      detectedLetterEl.className    = 'detected-letter';
+      successOverlayEl.style.display = 'none';
+      cameraContainer.classList.remove('recognition-success');
+    }
+
+    /* ---- Navigation ---- */
+
+    function goToLetter(index) {
+      currentIndex = Math.max(0, Math.min(LETTERS.length - 1, index));
+      updateLetterDisplay();
+      updateCounter();
+      updateNavControls();
+      updateDots();
+      resetRecognitionState();
+      // Clear the backend stabilizer so the new letter starts fresh (fire-and-forget)
+      fetch(
+        `${API_BASE}/reset?client_id=${encodeURIComponent(getClientId())}`,
+        { method: 'POST' }
+      ).catch(() => {});
+    }
+
+    /* ---- Success ---- */
+
+    function triggerSuccess() {
+      matchLocked    = true;
+      matchStartTime = null;
+
+      successOverlayEl.style.display = 'flex';
+      cameraContainer.classList.add('recognition-success');
+
+      setTimeout(() => {
+        successOverlayEl.style.display = 'none';
+        cameraContainer.classList.remove('recognition-success');
+        matchLocked = false;
+
+        if (currentIndex < LETTERS.length - 1) {
+          goToLetter(currentIndex + 1);
+        } else {
+          completionOverlay.style.display = 'flex';
+        }
+      }, 1500);
+    }
+
+    /* ---- Inference tick -----------------------------------------------
+       Copied from the tickInference() / startSession() pattern in app.js.
+       Differences from fatiha:
+         • No sequence tracking — only raw.arabic_preview is used.
+         • 800 ms continuous match → triggerSuccess().
+         • Camera stays running; only UI state resets on letter change.
+    -------------------------------------------------------------------- */
+    async function tickInference() {
+      if (sending) return;
+      try {
+        sending = true;
+        const ctx = canvasEl.getContext('2d');
+        if (!ctx) return;
+
+        // Same resolution as fatiha for reliable hand detection
+        canvasEl.width  = 640;
+        canvasEl.height = 480;
+        ctx.drawImage(videoEl, 0, 0, 640, 480);
+
+        const blob = await new Promise(resolve =>
+          canvasEl.toBlob(resolve, 'image/jpeg', 0.78)
+        );
+        if (!blob) return;
+
+        const form = new FormData();
+        form.append('image', blob, 'frame.jpg');
+
+        const clientId = getClientId();
+        const res = await fetch(
+          `${API_BASE}/predict?client_id=${encodeURIComponent(clientId)}`,
+          { method: 'POST', body: form }
+        );
+        if (!res.ok) {
+          const detail = await res.text().catch(() => '');
+          console.error('[letters] predict failed', res.status, detail.slice(0, 200));
+          throw new Error(`predict: ${res.status}`);
+        }
+        const data = await res.json();
+
+        const raw     = data?.raw  || {};
+        const preview = (raw.arabic_preview || '').trim();
+
+        // Live feedback: show arabic preview first, then label, then placeholder
+        if (preview) {
+          detectedLetterEl.textContent = preview;
+        } else if (raw.label) {
+          detectedLetterEl.textContent = raw.label;
+        } else {
+          detectedLetterEl.textContent = 'ـ';
+        }
+
+        // Color hint: green when matching target, muted otherwise
+        const target = LETTERS[currentIndex].char;
+        detectedLetterEl.className = preview === target
+          ? 'detected-letter detected-letter--match'
+          : 'detected-letter';
+
+        // 800 ms continuous match triggers success
+        if (!matchLocked) {
+          if (preview === target) {
+            if (matchStartTime === null) {
+              matchStartTime = Date.now();
+            } else if (Date.now() - matchStartTime >= 800) {
+              triggerSuccess();
+            }
+          } else {
+            matchStartTime = null;
+          }
+        }
+
+      } catch (err) {
+        console.error('[letters] inference error', err);
+      } finally {
+        sending = false;
+      }
+    }
+
+    /* ---- Camera init ---- */
+
+    async function startCamera() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        videoEl.srcObject = stream;
+        if (inferIntervalId) clearInterval(inferIntervalId);
+        inferIntervalId = setInterval(() => { void tickInference(); }, 220);
+      } catch (err) {
+        console.error('[letters] camera error', err);
+      }
+    }
+
+    /* ---- Event listeners ---- */
+
+    btnPrev.addEventListener('click', () => {
+      if (currentIndex > 0) goToLetter(currentIndex - 1);
+    });
+
+    btnNext.addEventListener('click', () => {
+      if (currentIndex < LETTERS.length - 1) goToLetter(currentIndex + 1);
+    });
+
+    btnRestart.addEventListener('click', () => {
+      completionOverlay.style.display = 'none';
+      goToLetter(0);
+    });
+
+    /* ---- Boot ---- */
+
+    document.addEventListener('DOMContentLoaded', () => {
+      updateLetterDisplay();
+      updateCounter();
+      updateNavControls();
+      updateDots();
+      startCamera();
+    });
+  </script>
+</body>
+</html>

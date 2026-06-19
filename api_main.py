@@ -568,6 +568,30 @@ def _collect_js():
     return FileResponse(str(p), media_type="application/javascript")
 
 
+@app.get("/logo-light.jpeg")
+def _logo_light():
+    p = _STATIC_DIR / "logo-light.jpeg"
+    if not p.is_file():
+        raise HTTPException(status_code=404)
+    return FileResponse(str(p), media_type="image/jpeg")
+
+
+@app.get("/logo-dark.jpeg")
+def _logo_dark():
+    p = _STATIC_DIR / "logo-dark.jpeg"
+    if not p.is_file():
+        raise HTTPException(status_code=404)
+    return FileResponse(str(p), media_type="image/jpeg")
+
+
+@app.get("/letters.html")
+def _letters_html():
+    p = _STATIC_DIR / "letters.html"
+    if not p.is_file():
+        raise HTTPException(status_code=404)
+    return FileResponse(str(p), media_type="text/html; charset=utf-8")
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     import uvicorn

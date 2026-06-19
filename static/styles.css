@@ -1085,3 +1085,369 @@ html {
     justify-content: center;
   }
 }
+
+/* ===== LOGO IMAGES ===== */
+
+/* Navbar: small rounded badge, sits on the dark translucent bar */
+.navbar-logo-img {
+  height: 38px;
+  width: auto;
+  display: block;
+  border-radius: 8px;
+  /* Tiny lift so the rounded square doesn't feel glued to the bar */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  transition: opacity 0.15s;
+}
+
+.navbar-logo:hover .navbar-logo-img {
+  opacity: 0.88;
+}
+
+/* Hero: centered brand mark above the headline */
+.hero-logo {
+  display: block;
+  height: 180px;
+  width: auto;
+  margin: 0 auto 2rem;
+  border-radius: 22px;
+  /* Blue glow ties it into the hero gradient */
+  box-shadow:
+    0 0 60px rgba(80, 60, 210, 0.45),
+    0 16px 48px rgba(0, 0, 0, 0.5);
+}
+
+@media (max-width: 768px) {
+  .hero-logo {
+    height: 130px;
+    border-radius: 16px;
+    margin-bottom: 1.5rem;
+  }
+}
+
+/* ================================================================
+   LETTERS PAGE  — appended, nothing above modified
+   ================================================================ */
+
+/* ---- Fixed header ---- */
+.letters-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(10, 15, 22, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.4);
+}
+
+.letters-header-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.letters-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #f7f7f7;
+  text-align: center;
+  flex: 1;
+}
+
+.letters-counter {
+  font-size: 0.85rem;
+  color: #a5b4c4;
+  white-space: nowrap;
+}
+
+/* ---- Main layout ---- */
+.letters-main {
+  min-height: 100vh;
+  padding: calc(64px + 2rem) 1.25rem 2.5rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+/* ---- Letter card ---- */
+.letter-card {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ---- Letter display area ---- */
+.letter-display-area {
+  text-align: center;
+  padding: 0.75rem 0 0.25rem;
+}
+
+.letter-char {
+  font-family: "Amiri Quran", "Scheherazade New", "Amiri", "Traditional Arabic", serif;
+  font-size: 6.5rem;
+  line-height: 1.1;
+  color: #f7f7f7;
+  margin: 0 0 0.5rem;
+}
+
+.letter-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.letter-name {
+  font-size: 1.1rem;
+  color: #c3cad5;
+  font-weight: 500;
+}
+
+.letter-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+}
+
+.letter-badge--strong {
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.letter-badge--weak {
+  background: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+/* ---- Camera wrapper ---- */
+.letters-camera-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+/* Square camera for letters page only */
+.page-letters .camera-container {
+  aspect-ratio: 1 / 1;
+}
+
+.page-letters .camera-container video {
+  object-fit: cover;
+  height: 100%;
+}
+
+/* ---- Success overlay (inside camera-container) ---- */
+.success-overlay {
+  display: none; /* shown via JS: style.display = 'flex' */
+  position: absolute;
+  inset: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: rgba(5, 28, 14, 0.75);
+}
+
+.success-check {
+  font-size: 3.5rem;
+  line-height: 1;
+}
+
+.success-text {
+  margin: 0;
+  font-size: 1rem;
+  color: #4ade80;
+  font-weight: 600;
+}
+
+/* ---- Pulsing green border on match ---- */
+.recognition-success {
+  border-color: #22c55e !important;
+  animation: pulse-border 0.9s ease-in-out infinite;
+}
+
+@keyframes pulse-border {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.4);  }
+  50%       { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0.12); }
+}
+
+/* ---- Detected letter display ---- */
+.detected-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.detected-label {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.detected-letter {
+  font-family: "Amiri Quran", "Scheherazade New", "Amiri", "Traditional Arabic", serif;
+  font-size: 2rem;
+  color: #a5b4c4;
+  transition: color 0.15s;
+  min-width: 2ch;
+  text-align: center;
+}
+
+.detected-letter--match {
+  color: #4ade80;
+}
+
+/* ---- Navigation controls ---- */
+.nav-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.25rem 0;
+}
+
+.nav-btn {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 10px;
+  padding: 0.55rem 1.1rem;
+  background: rgba(148, 163, 184, 0.07);
+  color: #e5e7eb;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+
+.nav-btn:hover:not(:disabled) {
+  background: rgba(148, 163, 184, 0.16);
+  transform: translateY(-1px);
+}
+
+.nav-btn:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ---- Five-dot position indicator ---- */
+.nav-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.28);
+  transition: background 0.15s, width 0.15s, height 0.15s;
+  flex-shrink: 0;
+}
+
+.nav-dot.active {
+  width: 13px;
+  height: 13px;
+  background: #22c55e;
+}
+
+.nav-dot.invisible {
+  visibility: hidden;
+}
+
+/* ---- Completion overlay ---- */
+.completion-overlay {
+  display: none; /* shown via JS: style.display = 'flex' */
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(5, 8, 14, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+
+.completion-card {
+  background: linear-gradient(135deg, rgba(15, 25, 40, 0.98), rgba(8, 12, 20, 0.98));
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.completion-emoji {
+  font-size: 4rem;
+  line-height: 1;
+}
+
+.completion-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f7f7f7;
+}
+
+.completion-text {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #a5b4c4;
+  line-height: 1.65;
+}
+
+.completion-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.completion-actions .btn {
+  width: 100%;
+  text-align: center;
+  padding: 0.72rem 1rem;
+  font-size: 0.97rem;
+  text-decoration: none;
+  border-radius: 999px;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+  .letters-main {
+    padding: calc(64px + 1.25rem) 1rem 1.5rem;
+  }
+
+  .letter-char {
+    font-size: 4.5rem;
+  }
+
+  .nav-btn {
+    min-height: 44px;
+    padding: 0.6rem 0.9rem;
+    font-size: 0.88rem;
+  }
+}
