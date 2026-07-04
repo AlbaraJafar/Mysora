@@ -108,12 +108,12 @@ def prepare_for_inference(frame: np.ndarray) -> Tuple[np.ndarray, bool]:
     if w == 0 or h == 0:
         raise ValueError("frame has zero width or height")
 
-    from mediapipe.tasks.python.vision.core import image as mp_image
+    import mediapipe as mp
 
     landmarker = _get_landmarker()
     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     rgb = np.ascontiguousarray(rgb)
-    mp_img = mp_image.Image(image_format=mp_image.ImageFormat.SRGB, data=rgb)
+    mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
 
     result = landmarker.detect(mp_img)
 
