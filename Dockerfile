@@ -14,6 +14,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libgomp1 \
     libgl1 \
+    libgl1-mesa-glx \
+    libgles2 \
+    libegl1 \
     libxcb1 \
     libxcb-shm0 \
     libx11-6 \
@@ -26,6 +29,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libice6 \
     libbsd0 \
     && rm -rf /var/lib/apt/lists/*
+
+# Force Mesa software renderer — Railway containers have no GPU/GLES hardware
+ENV DISPLAY=:99 \
+    LIBGL_ALWAYS_SOFTWARE=1
 
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt

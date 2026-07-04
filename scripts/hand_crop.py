@@ -51,7 +51,10 @@ def _get_landmarker():
         from mediapipe.tasks.python.vision.core import vision_task_running_mode
 
         model_path = _get_model_path()
-        base_opts = base_options.BaseOptions(model_asset_path=model_path)
+        base_opts = base_options.BaseOptions(
+            model_asset_path=model_path,
+            delegate=base_options.BaseOptions.Delegate.CPU,
+        )
         options = HandLandmarkerOptions(
             base_options=base_opts,
             running_mode=vision_task_running_mode.VisionTaskRunningMode.IMAGE,
