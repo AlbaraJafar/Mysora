@@ -17,7 +17,29 @@ from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse, Response as PromResponse
-from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST, REGISTRY
+
+
+def _get_or_create_counter(name, description, labelnames=None):
+    existing = REGISTRY._names_to_collectors.get(name)
+    if existing is not None:
+        return existing
+    return Counter(name, description, labelnames or [])
+
+
+def _get_or_create_histogram(name, description, buckets=None):
+    existing = REGISTRY._names_to_collectors.get(name)
+    if existing is not None:
+        return existing
+    kwargs = {"buckets": buckets} if buckets else {}
+    return Histogram(name, description, **kwargs)
+
+
+def _get_or_create_gauge(name, description):
+    existing = REGISTRY._names_to_collectors.get(name)
+    if existing is not None:
+        return existing
+    return Gauge(name, description)
 
 from scripts.inference import predict_proba
 from scripts.hand_crop import prepare_for_inference
@@ -45,26 +67,26 @@ def _cors_origins() -> List[str]:
 
 app = FastAPI(title="Mysora Gesture API", version="1.0.0")
 
-PREDICTIONS_TOTAL = Counter(
+PREDICTIONS_TOTAL = _get_or_create_counter(
     'mysora_predictions_total',
     'Total predictions made',
     ['letter', 'confidence_tier'],
 )
-INFERENCE_LATENCY = Histogram(
+INFERENCE_LATENCY = _get_or_create_histogram(
     'mysora_inference_seconds',
     'Time spent on inference per request',
     buckets=[0.02, 0.05, 0.1, 0.15, 0.2, 0.3, 0.5, 1.0],
 )
-HAND_DETECTION_RATE = Counter(
+HAND_DETECTION_RATE = _get_or_create_counter(
     'mysora_hand_detection_total',
     'Hand detection attempts',
     ['detected'],
 )
-ACTIVE_SESSIONS = Gauge(
+ACTIVE_SESSIONS = _get_or_create_gauge(
     'mysora_active_sessions',
     'Number of active client sessions in last 5 minutes',
 )
-STABILIZER_COMMITS = Counter(
+STABILIZER_COMMITS = _get_or_create_counter(
     'mysora_stabilizer_commits_total',
     'Times the gesture stabilizer committed to a letter',
     ['letter'],
