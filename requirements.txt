@@ -19,3 +19,4 @@ mediapipe==0.10.14
 
 arabic-reshaper>=3.0.0
 python-bidi>=0.4.2
+prometheus-client>=0.20.0

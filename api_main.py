@@ -16,7 +16,8 @@ from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response as PromResponse
+from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 
 from scripts.inference import predict_proba
 from scripts.hand_crop import prepare_for_inference
@@ -43,6 +44,33 @@ def _cors_origins() -> List[str]:
 
 
 app = FastAPI(title="Mysora Gesture API", version="1.0.0")
+
+PREDICTIONS_TOTAL = Counter(
+    'mysora_predictions_total',
+    'Total predictions made',
+    ['letter', 'confidence_tier'],
+)
+INFERENCE_LATENCY = Histogram(
+    'mysora_inference_seconds',
+    'Time spent on inference per request',
+    buckets=[0.02, 0.05, 0.1, 0.15, 0.2, 0.3, 0.5, 1.0],
+)
+HAND_DETECTION_RATE = Counter(
+    'mysora_hand_detection_total',
+    'Hand detection attempts',
+    ['detected'],
+)
+ACTIVE_SESSIONS = Gauge(
+    'mysora_active_sessions',
+    'Number of active client sessions in last 5 minutes',
+)
+STABILIZER_COMMITS = Counter(
+    'mysora_stabilizer_commits_total',
+    'Times the gesture stabilizer committed to a letter',
+    ['letter'],
+)
+
+_session_last_active: Dict[str, float] = {}
 
 app.add_middleware(
     CORSMiddleware,
@@ -144,11 +172,15 @@ def _run_full_inference(sess: Dict[str, object], gray224: np.ndarray, hand_prese
     stabilizer: GestureStabilizer = sess["stabilizer"]  # type: ignore[assignment]
     pred = stabilizer.update(labels=list(labels), probs=probs)
 
+    _tier = "high" if pred.raw_confidence > 0.85 else "medium" if pred.raw_confidence > 0.60 else "low"
+    PREDICTIONS_TOTAL.labels(letter=pred.raw_label, confidence_tier=_tier).inc()
+
     emitted_arabic: Optional[str] = None
     attempt_info: Optional[Dict[str, object]] = None
     if pred.stable_label is not None:
         emitted_arabic = letter_map.get(pred.stable_label, "")
         if emitted_arabic:
+            STABILIZER_COMMITS.labels(letter=emitted_arabic).inc()
             attempt_info = _apply_attempt(sess, emitted_arabic)
 
     sess["_last_gray"] = gray224.copy()
@@ -269,16 +301,26 @@ async def predict(
     client_id: str = Query(...),
     image: UploadFile = File(...),
 ):
+    _t0 = time.perf_counter()
     data = await image.read()
     frame = _decode_image_bytes(data)
     crop, hand_ok = prepare_for_inference(frame)
+    HAND_DETECTION_RATE.labels(detected=str(hand_ok).lower()).inc()
+
     sess = _get_session(client_id)
     now = time.monotonic()
 
-    if sess.get("_last_bundle") is not None and not _want_inference(sess, now):
-        return _reuse_last_bundle(sess, hand_present=hand_ok, skipped=True)
+    _session_last_active[client_id] = time.time()
+    _cutoff = time.time() - 300.0
+    ACTIVE_SESSIONS.set(sum(1 for _ts in _session_last_active.values() if _ts >= _cutoff))
 
-    return _run_full_inference(sess, crop, hand_ok, now)
+    if sess.get("_last_bundle") is not None and not _want_inference(sess, now):
+        result = _reuse_last_bundle(sess, hand_present=hand_ok, skipped=True)
+    else:
+        result = _run_full_inference(sess, crop, hand_ok, now)
+
+    INFERENCE_LATENCY.observe(time.perf_counter() - _t0)
+    return result
 
 
 @app.post("/reset")
@@ -509,6 +551,78 @@ async def contact_form(
     except Exception as e:
         print(f"[CONTACT ERROR] {e}")
         raise HTTPException(status_code=500, detail="فشل الإرسال")
+
+
+@app.get("/metrics")
+def metrics():
+    return PromResponse(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
+@app.get("/dashboard")
+def dashboard(password: str = ""):
+    admin_pw = os.environ.get("ADMIN_PASSWORD", "")
+    if not admin_pw or password != admin_pw:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    from prometheus_client import REGISTRY
+    metrics_data: Dict[str, list] = {}
+    for metric in REGISTRY.collect():
+        if metric.name.startswith("mysora_"):
+            for sample in metric.samples:
+                metrics_data.setdefault(sample.name, []).append(
+                    {"labels": sample.labels, "value": sample.value}
+                )
+
+    html = """<!DOCTYPE html>
+<html dir='rtl' lang='ar'>
+<head>
+  <meta charset='UTF-8'>
+  <title>Mysora Observability</title>
+  <style>
+    body{background:#0d1117;color:#f0f6fc;font-family:Calibri;padding:2rem}
+    table{width:100%;border-collapse:collapse;margin:1rem 0}
+    td,th{padding:8px;border-bottom:1px solid #21262d;text-align:right}
+    h1{color:#00b4d8}
+    h2{color:#8957e5;margin-top:2rem}
+  </style>
+</head>
+<body>
+  <h1>📊 Mysora Observability Dashboard</h1>
+"""
+    for metric_name, samples in metrics_data.items():
+        html += f"<h2>{metric_name}</h2><table>"
+        for s in samples:
+            labels_str = ", ".join(f"{k}={v}" for k, v in s["labels"].items())
+            html += f"<tr><td>{labels_str or '—'}</td><td>{s['value']}</td></tr>"
+        html += "</table>"
+    html += "</body></html>"
+    return HTMLResponse(html)
+
+
+@app.get("/eval/run")
+def eval_run(password: str = ""):
+    admin_pw = os.environ.get("ADMIN_PASSWORD", "")
+    if not admin_pw or password != admin_pw:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    from scripts.eval_harness import run_evaluation
+    results = run_evaluation()
+    return results
+
+
+@app.get("/model/info")
+def model_info():
+    import scripts.inference as inf
+    model_path = Path(inf.checkpoint_path)
+    model_size = model_path.stat().st_size if model_path.is_file() else 0
+    return {
+        "model_version": os.environ.get("MODEL_VERSION", "v1.0"),
+        "checkpoint_bytes": model_size,
+        "architecture": "MediaPipe HandLandmarker + ResNet-50 (31-class)",
+        "quantization": "none",
+        "inference_backend": "cpu",
+        "deployed_at": os.environ.get("RAILWAY_DEPLOYMENT_TIME", "unknown"),
+    }
 
 
 if _STATIC_DIR.is_dir():
