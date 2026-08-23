@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="mysora-api-base" content="" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>مساعد ميسورة</title>
+  <link rel="icon" type="image/jpeg" href="/logo-dark.jpeg" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ===== CHAT PAGE ===== */
+    .chat-page {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      background: var(--bg, #0a0f16);
+    }
+
+    .chat-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.9rem 1.25rem;
+      background: rgba(10,15,22,0.95);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      flex-shrink: 0;
+      backdrop-filter: blur(8px);
+    }
+    .chat-header-back {
+      color: #8b949e;
+      text-decoration: none;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+    .chat-header-back:hover { color: #e2e8f0; }
+    .chat-header-title {
+      flex: 1;
+      text-align: center;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+    .chat-header-badge {
+      font-size: 0.72rem;
+      color: #8b949e;
+      white-space: nowrap;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      scroll-behavior: smooth;
+    }
+
+    /* Suggestions shown when conversation is empty */
+    .chat-suggestions {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      margin: auto;
+      padding: 2rem 0;
+    }
+    .chat-suggestions-label {
+      color: #8b949e;
+      font-size: 0.88rem;
+    }
+    .chat-suggestions-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      justify-content: center;
+    }
+    .chip {
+      padding: 0.45rem 0.9rem;
+      background: rgba(139,88,224,0.12);
+      border: 1px solid rgba(139,88,224,0.3);
+      border-radius: 999px;
+      color: #c9b3f5;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .chip:hover { background: rgba(139,88,224,0.25); }
+
+    /* Message bubbles */
+    .msg {
+      max-width: 78%;
+      line-height: 1.6;
+      font-size: 0.95rem;
+      padding: 0.7rem 1rem;
+      border-radius: 14px;
+      word-break: break-word;
+    }
+    .msg-user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, #5038dc, #8b58e0);
+      color: #fff;
+      border-bottom-left-radius: 4px;
+    }
+    .msg-assistant {
+      align-self: flex-start;
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,0.07);
+      color: #e2e8f0;
+      border-bottom-right-radius: 4px;
+    }
+
+    /* Typing indicator */
+    .typing-dots {
+      align-self: flex-start;
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
+      border-bottom-right-radius: 4px;
+      padding: 0.75rem 1rem;
+      display: none;
+    }
+    .typing-dots span {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #8b58e0;
+      margin: 0 2px;
+      animation: bounce 1.2s infinite;
+    }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%,60%,100% { transform: translateY(0); }
+      30%          { transform: translateY(-6px); }
+    }
+
+    /* Input bar */
+    .chat-input-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.85rem 1rem;
+      background: rgba(10,15,22,0.97);
+      border-top: 1px solid rgba(255,255,255,0.07);
+      flex-shrink: 0;
+    }
+    .chat-input {
+      flex: 1;
+      background: #161b22;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      color: #e2e8f0;
+      padding: 0.65rem 0.9rem;
+      font-size: 0.95rem;
+      font-family: inherit;
+      resize: none;
+      outline: none;
+      direction: rtl;
+      min-height: 44px;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+    .chat-input:focus { border-color: rgba(139,88,224,0.5); }
+    .chat-send-btn {
+      flex-shrink: 0;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #5038dc, #8b58e0);
+      border: none;
+      color: #fff;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.15s;
+    }
+    .chat-send-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Error banner */
+    .chat-error {
+      align-self: stretch;
+      background: rgba(248,81,73,0.1);
+      border: 1px solid rgba(248,81,73,0.3);
+      border-radius: 10px;
+      color: #f85149;
+      padding: 0.6rem 0.9rem;
+      font-size: 0.88rem;
+      display: none;
+    }
+  </style>
+</head>
+<body class="page chat-page">
+
+  <!-- HEADER -->
+  <header class="chat-header">
+    <a href="/" class="chat-header-back">→ الرئيسية</a>
+    <div class="chat-header-title">🤲 مساعد ميسورة</div>
+    <div class="chat-header-badge" id="provider-badge">AI</div>
+  </header>
+
+  <!-- MESSAGES -->
+  <div class="chat-messages" id="messages">
+
+    <!-- Suggestions (hidden once user sends first message) -->
+    <div class="chat-suggestions" id="suggestions">
+      <p class="chat-suggestions-label">ابدأ بسؤال أو اختر من هنا:</p>
+      <div class="chat-suggestions-chips">
+        <button class="chip" data-q="ما هي الحروف الأضعف حالياً؟">ما هي الحروف الأضعف حالياً؟</button>
+        <button class="chip" data-q="كيف أحسّن دقة التعرف على إشاراتي؟">كيف أحسّن دقة إشاراتي؟</button>
+        <button class="chip" data-q="كيف تعمل ميسورة تقنياً؟">كيف تعمل ميسورة تقنياً؟</button>
+      </div>
+    </div>
+
+    <!-- Typing indicator -->
+    <div class="typing-dots" id="typing">
+      <span></span><span></span><span></span>
+    </div>
+
+    <!-- Error -->
+    <div class="chat-error" id="chat-error">❌ حدث خطأ في الاتصال. حاول مرة أخرى.</div>
+
+  </div>
+
+  <!-- INPUT BAR -->
+  <div class="chat-input-bar">
+    <textarea
+      id="chat-input"
+      class="chat-input"
+      placeholder="اكتب سؤالك..."
+      rows="1"
+    ></textarea>
+    <button id="send-btn" class="chat-send-btn" aria-label="إرسال">
+      ←
+    </button>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    const messagesEl  = document.getElementById('messages');
+    const suggestEl   = document.getElementById('suggestions');
+    const typingEl    = document.getElementById('typing');
+    const errorEl     = document.getElementById('chat-error');
+    const inputEl     = document.getElementById('chat-input');
+    const sendBtn     = document.getElementById('send-btn');
+    const providerBadge = document.getElementById('provider-badge');
+
+    let isWaiting = false;
+    let firstMessage = true;
+
+    // ---- Helpers ----
+
+    function appendMsg(text, role) {
+      const div = document.createElement('div');
+      div.className = role === 'user' ? 'msg msg-user' : 'msg msg-assistant';
+      div.textContent = text;
+      messagesEl.insertBefore(div, typingEl);
+      scrollBottom();
+    }
+
+    function scrollBottom() {
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function setWaiting(on) {
+      isWaiting = on;
+      sendBtn.disabled = on;
+      typingEl.style.display = on ? 'block' : 'none';
+      if (on) scrollBottom();
+    }
+
+    function showError(msg) {
+      errorEl.textContent = msg || '❌ حدث خطأ في الاتصال. حاول مرة أخرى.';
+      errorEl.style.display = 'block';
+      setTimeout(() => { errorEl.style.display = 'none'; }, 5000);
+    }
+
+    // ---- Send ----
+
+    async function sendMessage(text) {
+      text = text.trim();
+      if (!text || isWaiting) return;
+
+      if (firstMessage) {
+        suggestEl.style.display = 'none';
+        firstMessage = false;
+      }
+
+      errorEl.style.display = 'none';
+      appendMsg(text, 'user');
+      inputEl.value = '';
+      inputEl.style.height = 'auto';
+      setWaiting(true);
+
+      try {
+        const res = await fetch(`${API_BASE}/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text, session_id: getClientId() }),
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+
+        if (data.response) {
+          appendMsg(data.response, 'assistant');
+        } else if (data.error) {
+          showError('❌ ' + data.error);
+        }
+
+        if (data.provider && data.provider !== 'none') {
+          const labels = { anthropic: 'Claude', openai: 'GPT-4o', google: 'Gemini' };
+          providerBadge.textContent = labels[data.provider] || data.provider;
+        }
+
+      } catch (err) {
+        console.error('[chat]', err);
+        showError();
+      } finally {
+        setWaiting(false);
+        scrollBottom();
+      }
+    }
+
+    // ---- Events ----
+
+    sendBtn.addEventListener('click', () => sendMessage(inputEl.value));
+
+    inputEl.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage(inputEl.value);
+      }
+    });
+
+    // Auto-resize textarea
+    inputEl.addEventListener('input', () => {
+      inputEl.style.height = 'auto';
+      inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+    });
+
+    // Suggestion chips
+    document.querySelectorAll('.chip[data-q]').forEach(chip => {
+      chip.addEventListener('click', () => sendMessage(chip.getAttribute('data-q')));
+    });
+  </script>
+</body>
+</html>

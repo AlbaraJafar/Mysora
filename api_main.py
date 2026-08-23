@@ -632,6 +632,33 @@ def eval_run(password: str = ""):
     return results
 
 
+class ChatRequest(BaseModel):
+    message: str
+    session_id: str = ""
+
+
+@app.post("/chat")
+async def chat_endpoint(req: ChatRequest):
+    try:
+        from agents.sign_language_agent import chat as agent_chat
+        result = agent_chat(req.message)
+        return result
+    except Exception as e:
+        return {
+            "response": "عذراً، حدث خطأ. حاول مرة أخرى.",
+            "error": str(e),
+            "provider": "none",
+        }
+
+
+@app.get("/chat.html")
+def _chat_html():
+    p = _STATIC_DIR / "chat.html"
+    if not p.is_file():
+        raise HTTPException(status_code=404)
+    return FileResponse(str(p), media_type="text/html; charset=utf-8")
+
+
 @app.get("/model/info")
 def model_info():
     import scripts.inference as inf
