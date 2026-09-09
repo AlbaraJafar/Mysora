@@ -123,9 +123,178 @@ def get_model_info() -> str:
     }, ensure_ascii=False)
 
 
+@tool
+def get_my_progress(student_id: str) -> str:
+    """
+    Get the current user's own practice history and accuracy per letter.
+    Use when a STUDENT asks about their own performance, progress, or
+    what they should practice next.
+
+    Args:
+        student_id: The UUID of the student (injected by the system)
+    """
+    from collections import defaultdict
+
+    try:
+        from auth.supabase_client import get_supabase
+        supabase = get_supabase()
+        result = (
+            supabase.table("practice_sessions")
+            .select("*")
+            .eq("student_id", student_id)
+            .order("created_at", desc=True)
+            .limit(200)
+            .execute()
+        )
+
+        sessions = result.data
+        if not sessions:
+            return json.dumps({
+                "status": "no_data",
+                "message": "لا توجد بيانات تدريب بعد. ابدأ بالتدريب على الحروف!",
+            }, ensure_ascii=False)
+
+        by_letter: dict = defaultdict(lambda: {"correct": 0, "total": 0})
+        for s in sessions:
+            by_letter[s["letter"]]["total"] += 1
+            if s["correct"]:
+                by_letter[s["letter"]]["correct"] += 1
+
+        letter_stats = [
+            {
+                "letter": ltr,
+                "accuracy": round(d["correct"] / d["total"] * 100, 1),
+                "attempts": d["total"],
+            }
+            for ltr, d in by_letter.items()
+        ]
+        letter_stats.sort(key=lambda x: x["accuracy"])
+
+        return json.dumps({
+            "status": "ok",
+            "total_sessions": len(sessions),
+            "weakest_letters": letter_stats[:5],
+            "strongest_letters": letter_stats[-3:] if len(letter_stats) >= 3 else [],
+        }, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"status": "error", "message": str(e)}, ensure_ascii=False)
+
+
+@tool
+def get_my_students_status(teacher_id: str) -> str:
+    """
+    Get the practice status of all students assigned to this TEACHER.
+    Use when a teacher or parent asks who needs attention, who is
+    performing well, or for a class overview.
+
+    Args:
+        teacher_id: The UUID of the teacher (injected by the system)
+    """
+    from collections import defaultdict
+    from datetime import datetime, timezone
+
+    try:
+        from auth.supabase_client import get_supabase
+        supabase = get_supabase()
+
+        classes = (
+            supabase.table("classes")
+            .select("id")
+            .eq("teacher_id", teacher_id)
+            .execute()
+        )
+        class_ids = [c["id"] for c in classes.data]
+
+        if not class_ids:
+            return json.dumps({
+                "status": "no_classes",
+                "message": "لا توجد فصول مرتبطة بحسابك بعد",
+            }, ensure_ascii=False)
+
+        students_result = (
+            supabase.table("class_students")
+            .select("student_id, users(display_name)")
+            .in_("class_id", class_ids)
+            .execute()
+        )
+
+        student_ids = [s["student_id"] for s in students_result.data]
+        name_map = {
+            s["student_id"]: (s.get("users") or {}).get("display_name", "طالب")
+            for s in students_result.data
+        }
+
+        if not student_ids:
+            return json.dumps({
+                "status": "no_students",
+                "message": "لا يوجد طلاب مسجلين في فصولك بعد",
+            }, ensure_ascii=False)
+
+        sessions_resp = (
+            supabase.table("practice_sessions")
+            .select("*")
+            .in_("student_id", student_ids)
+            .order("created_at", desc=True)
+            .execute()
+        )
+
+        by_student: dict = defaultdict(lambda: {"correct": 0, "total": 0, "last_active": None})
+        for s in sessions_resp.data:
+            sid = s["student_id"]
+            by_student[sid]["total"] += 1
+            if s["correct"]:
+                by_student[sid]["correct"] += 1
+            if not by_student[sid]["last_active"]:
+                by_student[sid]["last_active"] = s["created_at"]
+
+        now = datetime.now(timezone.utc)
+        needs_attention = []
+        doing_well = []
+
+        for sid in student_ids:
+            name = name_map.get(sid, "طالب")
+            stats = by_student.get(sid)
+
+            if not stats or stats["total"] == 0:
+                needs_attention.append({"name": name, "reason": "لم يتدرب بعد"})
+                continue
+
+            accuracy = stats["correct"] / stats["total"] * 100
+            last_active_str = stats["last_active"]
+            try:
+                last_active = datetime.fromisoformat(last_active_str.replace("Z", "+00:00"))
+                days_inactive = (now - last_active).days
+            except Exception:
+                days_inactive = 0
+
+            if days_inactive >= 5:
+                needs_attention.append({
+                    "name": name,
+                    "reason": f"لم يتدرب منذ {days_inactive} أيام",
+                })
+            elif accuracy < 50:
+                needs_attention.append({
+                    "name": name,
+                    "reason": f"دقة منخفضة: {round(accuracy)}%",
+                })
+            elif accuracy >= 80:
+                doing_well.append({"name": name, "accuracy": round(accuracy)})
+
+        return json.dumps({
+            "status": "ok",
+            "total_students": len(student_ids),
+            "needs_attention": needs_attention,
+            "doing_well": doing_well,
+        }, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"status": "error", "message": str(e)}, ensure_ascii=False)
+
+
 ALL_TOOLS = [
     get_letter_accuracy,
     get_weakest_letters,
     get_data_collection_progress,
     get_model_info,
+    get_my_progress,
+    get_my_students_status,
 ]

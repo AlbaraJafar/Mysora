@@ -12,7 +12,7 @@ import copy
 
 import cv2
 import numpy as np
-from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Header, Query, UploadFile
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -284,6 +284,29 @@ def _apply_attempt(sess: Dict[str, object], attempted: str) -> Dict[str, object]
     return {"accepted": False, "expected": expected, "attempted": attempted, "complete": False}
 
 
+def _try_record_session(
+    token: str, letter: str, confidence_tier: str, correct: bool
+) -> None:
+    """Best-effort session recording — sync, run via BackgroundTasks."""
+    if not token or not letter:
+        return
+    try:
+        from auth.supabase_client import get_supabase
+        supabase = get_supabase()
+        bare_token = token.removeprefix("Bearer ")
+        user_resp = supabase.auth.get_user(bare_token)
+        if not user_resp.user:
+            return
+        supabase.table("practice_sessions").insert({
+            "student_id": user_resp.user.id,
+            "letter": letter,
+            "confidence_tier": confidence_tier,
+            "correct": correct,
+        }).execute()
+    except Exception:
+        pass
+
+
 def _decode_image_bytes(data: bytes) -> np.ndarray:
     arr = np.frombuffer(data, dtype=np.uint8)
     img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
@@ -322,6 +345,8 @@ def get_fatiha_config():
 async def predict(
     client_id: str = Query(...),
     image: UploadFile = File(...),
+    authorization: str = Header(None),
+    background_tasks: BackgroundTasks = None,
 ):
     _t0 = time.perf_counter()
     data = await image.read()
@@ -342,6 +367,19 @@ async def predict(
         result = _run_full_inference(sess, crop, hand_ok, now)
 
     INFERENCE_LATENCY.observe(time.perf_counter() - _t0)
+
+    # Best-effort per-user session recording — skipped frames carry no new inference
+    if authorization and not result.get("inference_skipped", False):
+        _raw = result.get("raw", {})
+        _rc = float(_raw.get("confidence", 0.0))
+        _tier = "high" if _rc > 0.85 else "medium" if _rc > 0.60 else "low"
+        _attempt = result.get("attempt")
+        _correct = bool(_attempt and _attempt.get("accepted", False))
+        if background_tasks is not None:
+            background_tasks.add_task(
+                _try_record_session, authorization, _raw.get("label", ""), _tier, _correct
+            )
+
     return result
 
 
@@ -638,12 +676,27 @@ class ChatRequest(BaseModel):
 
 
 @app.post("/chat")
-async def chat_endpoint(req: ChatRequest):
+async def chat_endpoint(req: ChatRequest, authorization: str = Header(None)):
     try:
+        user_id = None
+        user_role = None
+
+        if authorization:
+            try:
+                from auth.dependencies import get_current_user
+                user = await get_current_user(authorization)
+                user_id = user.id
+                user_role = user.role
+            except Exception:
+                pass  # fall back to anonymous chat if token invalid
+
         from agents.sign_language_agent import chat as agent_chat
-        result = agent_chat(req.message)
+        result = agent_chat(req.message, user_id=user_id, user_role=user_role)
         return result
     except Exception as e:
+        import traceback
+        print(f"[CHAT ERROR] {type(e).__name__}: {e}")
+        traceback.print_exc()
         return {
             "response": "عذراً، حدث خطأ. حاول مرة أخرى.",
             "error": str(e),
@@ -657,6 +710,22 @@ def _chat_html():
     if not p.is_file():
         raise HTTPException(status_code=404)
     return FileResponse(str(p), media_type="text/html; charset=utf-8")
+
+
+@app.get("/login.html")
+def _login_html():
+    p = _STATIC_DIR / "login.html"
+    if not p.is_file():
+        raise HTTPException(status_code=404)
+    return FileResponse(str(p), media_type="text/html; charset=utf-8")
+
+
+@app.get("/config/supabase")
+def supabase_config():
+    return {
+        "url": os.environ.get("SUPABASE_URL", ""),
+        "anon_key": os.environ.get("SUPABASE_ANON_KEY", ""),
+    }
 
 
 @app.get("/model/info")

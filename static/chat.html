@@ -199,7 +199,10 @@
   <header class="chat-header">
     <a href="/" class="chat-header-back">→ الرئيسية</a>
     <div class="chat-header-title">🤲 مساعد ميسورة</div>
-    <div class="chat-header-badge" id="provider-badge">AI</div>
+    <div style="display:flex;align-items:center;gap:0.6rem;flex-shrink:0">
+      <a href="/login.html" id="login-link" class="chat-header-back" style="display:none;color:#c9b3f5;font-size:0.82rem">تسجيل الدخول</a>
+      <div class="chat-header-badge" id="provider-badge">AI</div>
+    </div>
   </header>
 
   <!-- MESSAGES -->
@@ -251,6 +254,18 @@
     let isWaiting = false;
     let firstMessage = true;
 
+    // ---- Auth ----
+    const _token = localStorage.getItem('mysora_token');
+    if (!_token) {
+      document.getElementById('login-link').style.display = 'inline';
+    }
+
+    function authHeaders() {
+      const headers = { 'Content-Type': 'application/json' };
+      if (_token) headers['Authorization'] = 'Bearer ' + _token;
+      return headers;
+    }
+
     // ---- Helpers ----
 
     function appendMsg(text, role) {
@@ -298,7 +313,7 @@
       try {
         const res = await fetch(`${API_BASE}/chat`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders(),
           body: JSON.stringify({ message: text, session_id: getClientId() }),
         });
 
