@@ -13,6 +13,8 @@ create table public.users (
   created_at timestamptz default now()
 );
 
+
+
 create table public.classes (
   id uuid default gen_random_uuid() primary key,
   teacher_id uuid references public.users(id) not null,
